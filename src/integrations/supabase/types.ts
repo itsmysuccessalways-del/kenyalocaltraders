@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      deposits: {
+        Row: {
+          amount_kes: number
+          amount_usd: number
+          created_at: string
+          id: string
+          payment_method: string | null
+          pesapal_merchant_reference: string
+          pesapal_order_tracking_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_kes: number
+          amount_usd: number
+          created_at?: string
+          id?: string
+          payment_method?: string | null
+          pesapal_merchant_reference: string
+          pesapal_order_tracking_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_kes?: number
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          payment_method?: string | null
+          pesapal_merchant_reference?: string
+          pesapal_order_tracking_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
