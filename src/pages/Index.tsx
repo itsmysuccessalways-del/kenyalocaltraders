@@ -137,7 +137,7 @@ const Index = () => {
               { name: "John K.", loc: "Nairobi", text: "I deposited KES 1,000 last week and received my profit today. Very transparent and easy to use!" },
               { name: "Mary W.", loc: "Mombasa", text: "The loss protection gave me confidence to try forex trading. Best decision I've made this year." },
               { name: "David M.", loc: "Kisumu", text: "Withdrawals are fast and the dashboard makes it easy to track everything. Highly recommended!" },
-              { name: "Grace A.", loc: "Eldoret", text: "Started with just KES 150 and I've been growing my investment steadily. Great platform!" },
+              { name: "Grace A.", loc: "Eldoret", text: "Started with just KSH 10 and I've been growing my investment steadily. Great platform!" },
             ].map((t, i) => (
               <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
                 <Card className="h-full border-border">
