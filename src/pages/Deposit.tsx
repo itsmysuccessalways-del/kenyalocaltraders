@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, DollarSign, Loader2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
-const EXCHANGE_RATE = 150; // approximate KES per USD
+const EXCHANGE_RATE = 150; // approximate KSH per USD
 
 const Deposit = () => {
   const [amountUsd, setAmountUsd] = useState("");
