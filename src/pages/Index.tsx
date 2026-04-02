@@ -60,7 +60,7 @@ const Index = () => {
           {/* Stats */}
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={4} className="grid grid-cols-3 gap-6 mt-16 max-w-lg mx-auto">
             {[
-              { label: "Min Deposit", value: "KES 150" },
+              { label: "Min Deposit", value: "KSH 10" },
               { label: "Daily Profits", value: "24hrs" },
               { label: "Commission", value: "10%" },
             ].map((stat) => (
