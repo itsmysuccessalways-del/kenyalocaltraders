@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, DollarSign, Loader2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
-const EXCHANGE_RATE = 150; // approximate KES per USD
+const EXCHANGE_RATE = 150; // approximate KSH per USD
 
 const Deposit = () => {
   const [amountUsd, setAmountUsd] = useState("");
@@ -22,8 +22,8 @@ const Deposit = () => {
 
   const handleDeposit = async () => {
     const usd = parseFloat(amountUsd);
-    if (!usd || usd < 1 || usd > 200) {
-      toast.error("Amount must be between $1 and $200");
+    if (!usd || usd < 0.07 || usd > 200) {
+      toast.error("Amount must be between KSH 10 and KSH 30,000");
       return;
     }
 
@@ -147,8 +147,8 @@ const Deposit = () => {
             </div>
 
             <div className="bg-secondary rounded-lg p-3 text-sm text-muted-foreground">
-              <p>• Min deposit: $1 (~KES 150)</p>
-              <p>• Max deposit: $200 (~KES 30,000)</p>
+              <p>• Min deposit: KSH 10</p>
+              <p>• Max deposit: KSH 30,000</p>
               <p>• Payment via Pesapal (M-Pesa, Card, etc.)</p>
             </div>
 

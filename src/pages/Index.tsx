@@ -46,7 +46,7 @@ const Index = () => {
             <span className="text-primary">Expert Forex Trading</span>
           </motion.h1>
           <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={2} className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Deposit as little as $1 (~KES 150). Let us trade for you. Profits shared daily. Losses refunded.
+            Deposit as little as KSH 10. Let us trade for you. Profits shared daily. Losses refunded.
           </motion.p>
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
@@ -60,7 +60,7 @@ const Index = () => {
           {/* Stats */}
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={4} className="grid grid-cols-3 gap-6 mt-16 max-w-lg mx-auto">
             {[
-              { label: "Min Deposit", value: "KES 150" },
+              { label: "Min Deposit", value: "KSH 10" },
               { label: "Daily Profits", value: "24hrs" },
               { label: "Commission", value: "10%" },
             ].map((stat) => (
@@ -80,7 +80,7 @@ const Index = () => {
           <p className="text-center text-muted-foreground mb-12">Simple 4-step process to start earning from forex trading</p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Wallet, title: "Deposit Funds", desc: "Add funds securely via M-Pesa. Min $1 (~KES 150), max $200 (~KES 30,000).", color: "text-primary" },
+              { icon: Wallet, title: "Deposit Funds", desc: "Add funds securely via M-Pesa. Min KSH 10, max KSH 30,000.", color: "text-primary" },
               { icon: BarChart3, title: "We Trade for You", desc: "Your deposit is pooled and traded using our proven strategy.", color: "text-gold" },
               { icon: DollarSign, title: "Profit Sharing", desc: "Profits calculated after 24 hours and shared automatically. 10% commission.", color: "text-primary" },
               { icon: Shield, title: "Loss Protection", desc: "Initial deposits are refunded in the unlikely event of a loss.", color: "text-gold" },
@@ -109,7 +109,7 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: BarChart3, title: "Expert Trading", desc: "5 years of experience in forex markets with proven strategies", color: "bg-primary/10 text-primary" },
-              { icon: DollarSign, title: "Low Entry Barrier", desc: "Start trading with as little as $1 (~KES 150)", color: "bg-gold/10 text-gold" },
+              { icon: DollarSign, title: "Low Entry Barrier", desc: "Start trading with as little as KSH 10", color: "bg-gold/10 text-gold" },
               { icon: Shield, title: "Safe & Transparent", desc: "Profits updated daily, deposits protected, easy withdrawals", color: "bg-primary/10 text-primary" },
             ].map((feat, i) => (
               <motion.div key={feat.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
@@ -137,7 +137,7 @@ const Index = () => {
               { name: "John K.", loc: "Nairobi", text: "I deposited KES 1,000 last week and received my profit today. Very transparent and easy to use!" },
               { name: "Mary W.", loc: "Mombasa", text: "The loss protection gave me confidence to try forex trading. Best decision I've made this year." },
               { name: "David M.", loc: "Kisumu", text: "Withdrawals are fast and the dashboard makes it easy to track everything. Highly recommended!" },
-              { name: "Grace A.", loc: "Eldoret", text: "Started with just KES 150 and I've been growing my investment steadily. Great platform!" },
+              { name: "Grace A.", loc: "Eldoret", text: "Started with just KSH 10 and I've been growing my investment steadily. Great platform!" },
             ].map((t, i) => (
               <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
                 <Card className="h-full border-border">
@@ -168,7 +168,7 @@ const Index = () => {
             {[
               { q: "How is profit shared?", a: "Profits are calculated and credited to your account 24 hours after the trade closes. You can view your earnings in real-time on the dashboard." },
               { q: "What happens if a trade loses?", a: "Your initial deposit is fully refunded in the unlikely event of a trading loss. We absorb all losses to protect your investment." },
-              { q: "What are the deposit limits?", a: "Minimum deposit is $1 (~KES 150) and maximum deposit is $200 (~KES 30,000) per transaction." },
+              { q: "What are the deposit limits?", a: "Minimum deposit is KSH 10 and maximum deposit is KSH 30,000 per transaction." },
               { q: "How much commission do you charge?", a: "We charge a 10% commission on profits only. If there's no profit, there's no commission. Your deposits are never touched." },
               { q: "How do I withdraw my money?", a: "You can request a withdrawal anytime after profit distribution. Funds are sent directly to your M-Pesa number, usually within 24 hours." },
             ].map((faq, i) => (
