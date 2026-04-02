@@ -22,8 +22,8 @@ const Deposit = () => {
 
   const handleDeposit = async () => {
     const usd = parseFloat(amountUsd);
-    if (!usd || usd < 1 || usd > 200) {
-      toast.error("Amount must be between $1 and $200");
+    if (!usd || usd < 0.07 || usd > 200) {
+      toast.error("Amount must be between KSH 10 and KSH 30,000");
       return;
     }
 
