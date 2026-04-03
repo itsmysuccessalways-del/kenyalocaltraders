@@ -46,7 +46,7 @@ const Index = () => {
             <span className="text-primary">Expert Forex Trading</span>
           </motion.h1>
           <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={2} className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Deposit as little as KSH 10. Let us trade for you. Profits shared daily. Losses refunded.
+            Deposit as little as $0.1 (~KSH 15). Let us trade for you. Profits shared daily. Losses refunded.
           </motion.p>
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
