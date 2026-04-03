@@ -187,17 +187,16 @@ Deno.serve(async (req: Request) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email as string;
+    const userId = user.id;
+    const userEmail = user.email || "";
 
     const body = await req.json();
     const amountUsd = Number(body.amount_usd);
@@ -206,8 +205,8 @@ Deno.serve(async (req: Request) => {
     const firstName = body.first_name || "Customer";
     const lastName = body.last_name || "";
 
-    if (!amountUsd || amountUsd < 1 || amountUsd > 200) {
-      return new Response(JSON.stringify({ error: "Amount must be between $1 and $200" }), {
+    if (!amountUsd || amountUsd < 0.1 || amountUsd > 200) {
+      return new Response(JSON.stringify({ error: "Amount must be between $0.1 and $200" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
