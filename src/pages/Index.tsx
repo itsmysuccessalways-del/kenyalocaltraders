@@ -109,7 +109,7 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: BarChart3, title: "Expert Trading", desc: "5 years of experience in forex markets with proven strategies", color: "bg-primary/10 text-primary" },
-              { icon: DollarSign, title: "Low Entry Barrier", desc: "Start trading with as little as KSH 10", color: "bg-gold/10 text-gold" },
+              { icon: DollarSign, title: "Low Entry Barrier", desc: "Start trading with as little as $0.1 (~KSH 15)", color: "bg-gold/10 text-gold" },
               { icon: Shield, title: "Safe & Transparent", desc: "Profits updated daily, deposits protected, easy withdrawals", color: "bg-primary/10 text-primary" },
             ].map((feat, i) => (
               <motion.div key={feat.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
