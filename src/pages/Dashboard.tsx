@@ -239,9 +239,9 @@ const Dashboard = () => {
                   <Input
                     id="depositAmount"
                     type="number"
-                    min="10"
+                    min="15"
                     max="30000"
-                    placeholder="Enter amount (KSH 10 - 30,000)"
+                    placeholder="Enter amount (KSH 15 - 30,000)"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
                   />
