@@ -61,8 +61,8 @@ const Dashboard = () => {
 
   const handleDeposit = async () => {
     const kes = parseFloat(depositAmount);
-    if (!kes || kes < 10 || kes > 30000) {
-      toast.error("Amount must be between KSH 10 and KSH 30,000");
+    if (!kes || kes < 15 || kes > 30000) {
+      toast.error("Amount must be between KSH 15 (~$0.1) and KSH 30,000");
       return;
     }
     if (!phone.trim()) {
@@ -239,9 +239,9 @@ const Dashboard = () => {
                   <Input
                     id="depositAmount"
                     type="number"
-                    min="10"
+                    min="15"
                     max="30000"
-                    placeholder="Enter amount (KSH 10 - 30,000)"
+                    placeholder="Enter amount (KSH 15 - 30,000)"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
                   />
@@ -267,8 +267,8 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-sm text-muted-foreground">
-                  <p>• Min deposit: KSH 10</p>
-                  <p>• Max deposit: KSH 30,000</p>
+                  <p>• Min deposit: KSH 15 (~$0.1)</p>
+                  <p>• Max deposit: KSH 30,000 (~$200)</p>
                   <p>• Payment via Pesapal (M-Pesa, Card, etc.)</p>
                 </div>
                 <Button className="w-full" size="lg" onClick={handleDeposit} disabled={depositLoading || !depositAmount || !phone}>

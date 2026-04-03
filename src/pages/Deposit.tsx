@@ -22,8 +22,8 @@ const Deposit = () => {
 
   const handleDeposit = async () => {
     const usd = parseFloat(amountUsd);
-    if (!usd || usd < 0.07 || usd > 200) {
-      toast.error("Amount must be between KSH 10 and KSH 30,000");
+    if (!usd || usd < 0.1 || usd > 200) {
+      toast.error("Amount must be between $0.1 and $200");
       return;
     }
 
@@ -147,8 +147,8 @@ const Deposit = () => {
             </div>
 
             <div className="bg-secondary rounded-lg p-3 text-sm text-muted-foreground">
-              <p>• Min deposit: KSH 10</p>
-              <p>• Max deposit: KSH 30,000</p>
+              <p>• Min deposit: $0.1 (~KSH 15)</p>
+              <p>• Max deposit: $200 (~KSH 30,000)</p>
               <p>• Payment via Pesapal (M-Pesa, Card, etc.)</p>
             </div>
 
