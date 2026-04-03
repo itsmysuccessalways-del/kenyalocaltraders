@@ -61,8 +61,8 @@ const Dashboard = () => {
 
   const handleDeposit = async () => {
     const kes = parseFloat(depositAmount);
-    if (!kes || kes < 10 || kes > 30000) {
-      toast.error("Amount must be between KSH 10 and KSH 30,000");
+    if (!kes || kes < 15 || kes > 30000) {
+      toast.error("Amount must be between KSH 15 (~$0.1) and KSH 30,000");
       return;
     }
     if (!phone.trim()) {
