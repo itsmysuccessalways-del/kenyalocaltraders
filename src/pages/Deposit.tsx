@@ -147,8 +147,8 @@ const Deposit = () => {
             </div>
 
             <div className="bg-secondary rounded-lg p-3 text-sm text-muted-foreground">
-              <p>• Min deposit: KSH 10</p>
-              <p>• Max deposit: KSH 30,000</p>
+              <p>• Min deposit: $0.1 (~KSH 15)</p>
+              <p>• Max deposit: $200 (~KSH 30,000)</p>
               <p>• Payment via Pesapal (M-Pesa, Card, etc.)</p>
             </div>
 

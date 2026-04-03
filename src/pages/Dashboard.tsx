@@ -267,8 +267,8 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-sm text-muted-foreground">
-                  <p>• Min deposit: KSH 10</p>
-                  <p>• Max deposit: KSH 30,000</p>
+                  <p>• Min deposit: KSH 15 (~$0.1)</p>
+                  <p>• Max deposit: KSH 30,000 (~$200)</p>
                   <p>• Payment via Pesapal (M-Pesa, Card, etc.)</p>
                 </div>
                 <Button className="w-full" size="lg" onClick={handleDeposit} disabled={depositLoading || !depositAmount || !phone}>
