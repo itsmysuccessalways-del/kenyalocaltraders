@@ -36,6 +36,7 @@ const Dashboard = () => {
 
   const completedDeposits = deposits.filter((d) => d.status === "completed");
   const totalDeposits = completedDeposits.reduce((sum, d) => sum + Number(d.amount_kes), 0);
+  const totalProfit = deposits.reduce((sum, d) => sum + Number(d.profit_amount || 0), 0);
   const pendingTrades = deposits.filter((d) => d.status === "pending").reduce((sum, d) => sum + Number(d.amount_kes), 0);
 
   useEffect(() => {
