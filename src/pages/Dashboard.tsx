@@ -36,6 +36,7 @@ const Dashboard = () => {
 
   const completedDeposits = deposits.filter((d) => d.status === "completed");
   const totalDeposits = completedDeposits.reduce((sum, d) => sum + Number(d.amount_kes), 0);
+  const totalProfit = deposits.reduce((sum, d) => sum + Number(d.profit_amount || 0), 0);
   const pendingTrades = deposits.filter((d) => d.status === "pending").reduce((sum, d) => sum + Number(d.amount_kes), 0);
 
   useEffect(() => {
@@ -119,9 +120,9 @@ const Dashboard = () => {
 
   const statCards = [
     { label: "Total Deposits", value: `KSH ${totalDeposits.toLocaleString()}`, icon: Wallet, color: "text-primary" },
-    { label: "Total Profit", value: "KSH 0", icon: ArrowUpRight, color: "text-primary" },
+    { label: "Total Profit", value: `KSH ${totalProfit.toLocaleString()}`, icon: ArrowUpRight, color: "text-primary" },
     { label: "Pending Trades", value: `KSH ${pendingTrades.toLocaleString()}`, icon: Clock, color: "text-[hsl(var(--warning))]" },
-    { label: "Available Balance", value: `KSH ${totalDeposits.toLocaleString()}`, icon: DollarSign, color: "text-primary" },
+    { label: "Available Balance", value: `KSH ${(totalDeposits + totalProfit).toLocaleString()}`, icon: DollarSign, color: "text-primary" },
   ];
 
   return (
