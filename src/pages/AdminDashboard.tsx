@@ -4,9 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -14,7 +11,8 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   Users, DollarSign, TrendingUp, Clock, Search,
-  LogOut, Shield, Loader2, Edit, ChevronDown,
+  LogOut, Shield, Loader2, Edit, Activity,
+  UserCheck, CreditCard, ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -62,7 +60,6 @@ const AdminDashboard = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/login"); return; }
 
-      // Check admin role
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
@@ -77,7 +74,6 @@ const AdminDashboard = () => {
 
       setIsAdmin(true);
 
-      // Fetch all profiles and deposits
       const [profilesRes, depositsRes] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("deposits").select("*").order("created_at", { ascending: false }),
@@ -107,7 +103,6 @@ const AdminDashboard = () => {
 
     if (error) {
       toast.error("Failed to update profit");
-      console.error(error);
     } else {
       setDeposits((prev) =>
         prev.map((d) => d.id === editingDeposit.id ? { ...d, profit_amount: profit } : d)
@@ -132,10 +127,16 @@ const AdminDashboard = () => {
 
   const totalProfit = deposits.reduce((sum, d) => sum + Number(d.profit_amount || 0), 0);
   const pendingCount = deposits.filter((d) => d.status === "pending").length;
+  const completedCount = deposits.filter((d) => d.status === "completed").length;
 
   const getEmailForUser = (userId: string) => {
     const p = profiles.find((pr) => pr.user_id === userId);
     return p?.email || p?.display_name || userId.slice(0, 8);
+  };
+
+  const getNameForUser = (userId: string) => {
+    const p = profiles.find((pr) => pr.user_id === userId);
+    return p?.display_name || p?.email?.split("@")[0] || "Unknown";
   };
 
   if (loading) {
@@ -149,43 +150,74 @@ const AdminDashboard = () => {
   if (!isAdmin) return null;
 
   const statCards = [
-    { label: "Total Users", value: profiles.length, icon: Users, color: "text-primary" },
-    { label: "Total Deposits", value: `KSH ${totalDepositsKes.toLocaleString()}`, icon: DollarSign, color: "text-primary" },
-    { label: "Total Profit", value: `KSH ${totalProfit.toLocaleString()}`, icon: TrendingUp, color: "text-primary" },
-    { label: "Pending", value: pendingCount, icon: Clock, color: "text-[hsl(var(--warning))]" },
+    { label: "Total Users", value: profiles.length.toString(), icon: Users, accent: "bg-[hsl(210,80%,55%)]" },
+    { label: "Total Deposits", value: `KSH ${totalDepositsKes.toLocaleString()}`, icon: DollarSign, accent: "bg-primary" },
+    { label: "Total Profit", value: `KSH ${totalProfit.toLocaleString()}`, icon: TrendingUp, accent: "bg-[hsl(280,70%,55%)]" },
+    { label: "Pending", value: pendingCount.toString(), icon: Clock, accent: "bg-[hsl(var(--warning))]" },
   ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
+      {/* Admin Header - distinct from user dashboard */}
+      <nav className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="flex items-center justify-between py-3 px-4 max-w-5xl mx-auto">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-primary-foreground" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-[hsl(280,70%,55%)] rounded-xl flex items-center justify-center shadow-lg">
+              <Shield className="w-4.5 h-4.5 text-primary-foreground" />
             </div>
-            <span className="text-base font-bold text-foreground">Admin Panel</span>
+            <div>
+              <span className="text-sm font-bold text-foreground block leading-tight">Admin Panel</span>
+              <span className="text-[10px] text-muted-foreground">Kenya Smart Trades</span>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
-            <LogOut className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-border"
+              onClick={() => navigate("/dashboard")}
+            >
+              User View
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </nav>
 
       <div className="max-w-5xl mx-auto px-4 py-5 pb-12">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        {/* Platform Overview Banner */}
+        <motion.div initial="hidden" animate="visible" variants={fadeIn} custom={0} className="mb-5">
+          <div className="rounded-xl bg-gradient-to-r from-[hsl(280,70%,20%)] to-[hsl(210,80%,20%)] border border-border p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Activity className="w-4 h-4 text-[hsl(280,70%,65%)]" />
+              <span className="text-xs font-semibold text-[hsl(280,70%,75%)] uppercase tracking-wider">Platform Overview</span>
+            </div>
+            <p className="text-lg font-bold text-foreground">
+              {profiles.length} users • {completedCount} completed trades
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
           {statCards.map((stat, i) => (
-            <motion.div key={stat.label} initial="hidden" animate="visible" variants={fadeIn} custom={i}>
-              <Card className="border-border bg-card">
-                <CardContent className="p-3.5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      {stat.label}
-                    </span>
-                    <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
+            <motion.div key={stat.label} initial="hidden" animate="visible" variants={fadeIn} custom={i + 1}>
+              <Card className="border-border bg-card overflow-hidden">
+                <CardContent className="p-3.5 relative">
+                  <div className={`absolute top-0 left-0 w-1 h-full ${stat.accent}`} />
+                  <div className="pl-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {stat.label}
+                      </span>
+                      <div className={`w-6 h-6 rounded-lg ${stat.accent}/15 flex items-center justify-center`}>
+                        <stat.icon className="w-3 h-3 text-foreground" />
+                      </div>
+                    </div>
+                    <p className="text-lg font-bold text-foreground">{stat.value}</p>
                   </div>
-                  <p className="text-xl font-bold text-foreground">{stat.value}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -194,146 +226,168 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-3 bg-secondary h-10 rounded-xl">
-            <TabsTrigger value="users" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Users
+          <TabsList className="w-full grid grid-cols-3 bg-card border border-border h-11 rounded-xl p-1">
+            <TabsTrigger value="users" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
+              <Users className="w-3.5 h-3.5 mr-1.5" /> Users
             </TabsTrigger>
-            <TabsTrigger value="deposits" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              All Deposits
+            <TabsTrigger value="deposits" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
+              <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Deposits
             </TabsTrigger>
-            <TabsTrigger value="recent" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Recent
+            <TabsTrigger value="recent" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
+              <Activity className="w-3.5 h-3.5 mr-1.5" /> Activity
             </TabsTrigger>
           </TabsList>
 
-          {/* Users Tab */}
+          {/* Users Tab - Mobile-optimized card layout */}
           <TabsContent value="users">
-            <Card className="border-border bg-card">
-              <CardContent className="p-4">
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users by name, email, or phone..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-secondary border-border"
-                  />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 bg-card border-border h-10"
+                />
+              </div>
+
+              {filteredProfiles.length === 0 ? (
+                <Card className="border-border bg-card">
+                  <CardContent className="p-8 text-center">
+                    <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No users found</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {filteredProfiles.map((p, i) => (
+                    <motion.div key={p.user_id} initial="hidden" animate="visible" variants={fadeIn} custom={i * 0.5}>
+                      <Card className="border-border bg-card">
+                        <CardContent className="p-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-[hsl(210,80%,55%)]/15 flex items-center justify-center shrink-0">
+                              <UserCheck className="w-4 h-4 text-[hsl(210,80%,55%)]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">
+                                {p.display_name || "No Name"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate">{p.email || "—"}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-[11px] text-muted-foreground">{p.phone || "No phone"}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(p.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
                 </div>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Name</TableHead>
-                        <TableHead className="text-xs">Email</TableHead>
-                        <TableHead className="text-xs">Phone</TableHead>
-                        <TableHead className="text-xs">Joined</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredProfiles.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-8">
-                            No users found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredProfiles.map((p) => (
-                          <TableRow key={p.user_id}>
-                            <TableCell className="text-xs font-medium">{p.display_name || "—"}</TableCell>
-                            <TableCell className="text-xs">{p.email || "—"}</TableCell>
-                            <TableCell className="text-xs">{p.phone || "—"}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {new Date(p.created_at).toLocaleDateString()}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+              )}
+              <p className="text-[10px] text-muted-foreground text-center">
+                {filteredProfiles.length} of {profiles.length} users
+              </p>
+            </div>
           </TabsContent>
 
-          {/* All Deposits Tab */}
+          {/* Deposits Tab - Mobile card layout */}
           <TabsContent value="deposits">
-            <Card className="border-border bg-card">
-              <CardContent className="p-4">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">User</TableHead>
-                        <TableHead className="text-xs">Amount (KES)</TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                        <TableHead className="text-xs">Profit</TableHead>
-                        <TableHead className="text-xs">Date</TableHead>
-                        <TableHead className="text-xs">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {deposits.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground text-sm py-8">
-                            No deposits
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        deposits.map((d) => (
-                          <TableRow key={d.id}>
-                            <TableCell className="text-xs">{getEmailForUser(d.user_id)}</TableCell>
-                            <TableCell className="text-xs font-medium">
-                              KSH {Number(d.amount_kes).toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                d.status === "completed"
-                                  ? "bg-primary/15 text-primary"
-                                  : d.status === "pending"
-                                  ? "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]"
-                                  : "bg-destructive/15 text-destructive"
-                              }`}>
-                                {d.status}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-xs font-medium text-primary">
-                              KSH {Number(d.profit_amount || 0).toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
+            <div className="space-y-2">
+              {deposits.length === 0 ? (
+                <Card className="border-border bg-card">
+                  <CardContent className="p-8 text-center">
+                    <CreditCard className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No deposits yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                deposits.map((d, i) => (
+                  <motion.div key={d.id} initial="hidden" animate="visible" variants={fadeIn} custom={i * 0.3}>
+                    <Card className="border-border bg-card">
+                      <CardContent className="p-3.5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {getNameForUser(d.user_id)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {getEmailForUser(d.user_id)}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
+                            d.status === "completed"
+                              ? "bg-primary/15 text-primary"
+                              : d.status === "pending"
+                              ? "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]"
+                              : "bg-destructive/15 text-destructive"
+                          }`}>
+                            {d.status}
+                          </span>
+                        </div>
+                        <div className="flex items-end justify-between">
+                          <div className="flex gap-4">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
+                              <p className="text-sm font-bold text-foreground">
+                                KSH {Number(d.amount_kes).toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Profit</p>
+                              <p className="text-sm font-bold text-primary">
+                                KSH {Number(d.profit_amount || 0).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground">
                               {new Date(d.created_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={() => {
-                                  setEditingDeposit(d);
-                                  setProfitValue(String(d.profit_amount || 0));
-                                }}
-                              >
-                                <Edit className="w-3 h-3 mr-1" /> Edit Profit
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2.5 text-[10px] border-border"
+                              onClick={() => {
+                                setEditingDeposit(d);
+                                setProfitValue(String(d.profit_amount || 0));
+                              }}
+                            >
+                              <Edit className="w-3 h-3 mr-1" /> Edit
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
+            </div>
           </TabsContent>
 
-          {/* Recent Tab */}
+          {/* Activity Tab */}
           <TabsContent value="recent">
             <Card className="border-border bg-card">
               <CardContent className="p-4 space-y-2">
-                <h3 className="text-sm font-bold text-foreground mb-3">Recent Transactions</h3>
-                {deposits.slice(0, 10).map((d) => (
-                  <div key={d.id} className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/50">
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{getEmailForUser(d.user_id)}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4 text-[hsl(280,70%,55%)]" />
+                  <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
+                </div>
+                {deposits.slice(0, 15).map((d) => (
+                  <div key={d.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/50">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      d.status === "completed" ? "bg-primary/15" : "bg-[hsl(var(--warning))]/15"
+                    }`}>
+                      <ArrowUpRight className={`w-3.5 h-3.5 ${
+                        d.status === "completed" ? "text-primary" : "text-[hsl(var(--warning))]"
+                      }`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {getNameForUser(d.user_id)}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">
                         {new Date(d.created_at).toLocaleDateString()} •{" "}
                         <span className={d.status === "completed" ? "text-primary" : "text-[hsl(var(--warning))]"}>
@@ -341,16 +395,20 @@ const AdminDashboard = () => {
                         </span>
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-foreground">KSH {Number(d.amount_kes).toLocaleString()}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        KSH {Number(d.amount_kes).toLocaleString()}
+                      </p>
                       {Number(d.profit_amount) > 0 && (
-                        <p className="text-[10px] text-primary">+KSH {Number(d.profit_amount).toLocaleString()}</p>
+                        <p className="text-[10px] text-primary font-medium">
+                          +KSH {Number(d.profit_amount).toLocaleString()}
+                        </p>
                       )}
                     </div>
                   </div>
                 ))}
                 {deposits.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">No transactions yet</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">No activity yet</p>
                 )}
               </CardContent>
             </Card>
@@ -360,15 +418,17 @@ const AdminDashboard = () => {
 
       {/* Edit Profit Dialog */}
       <Dialog open={!!editingDeposit} onOpenChange={(open) => !open && setEditingDeposit(null)}>
-        <DialogContent className="bg-card border-border max-w-sm">
+        <DialogContent className="bg-card border-border max-w-[calc(100%-2rem)] sm:max-w-sm rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">Edit Profit</DialogTitle>
           </DialogHeader>
           {editingDeposit && (
             <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Deposit: KSH {Number(editingDeposit.amount_kes).toLocaleString()} by {getEmailForUser(editingDeposit.user_id)}
-              </p>
+              <div className="bg-secondary/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">User</p>
+                <p className="text-sm font-medium text-foreground">{getNameForUser(editingDeposit.user_id)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Deposit: KSH {Number(editingDeposit.amount_kes).toLocaleString()}</p>
+              </div>
               <div>
                 <Label htmlFor="profit" className="text-xs">Profit Amount (KES)</Label>
                 <Input
@@ -376,15 +436,19 @@ const AdminDashboard = () => {
                   type="number"
                   value={profitValue}
                   onChange={(e) => setProfitValue(e.target.value)}
-                  className="bg-secondary border-border"
+                  className="bg-secondary border-border mt-1"
                   placeholder="Enter profit in KES"
                 />
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingDeposit(null)}>Cancel</Button>
-            <Button onClick={handleSaveProfit}>Save</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditingDeposit(null)} className="border-border">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfit} className="bg-[hsl(280,70%,55%)] hover:bg-[hsl(280,70%,45%)]">
+              Save Profit
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
