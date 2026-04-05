@@ -23,10 +23,22 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success("Logged in successfully!");
-      navigate("/dashboard");
+
+      // Check if admin and redirect accordingly
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin");
+
+      if (roles && roles.length > 0) {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed";
       toast.error(message);
