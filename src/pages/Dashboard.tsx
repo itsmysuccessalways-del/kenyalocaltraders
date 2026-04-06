@@ -162,7 +162,7 @@ const Dashboard = () => {
     } finally {
       setWithdrawLoading(false);
     }
-
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
