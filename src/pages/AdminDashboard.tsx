@@ -409,6 +409,90 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
+          {/* Withdrawals Tab */}
+          <TabsContent value="withdrawals">
+            <div className="space-y-2">
+              {withdrawals.length === 0 ? (
+                <Card className="border-border bg-card">
+                  <CardContent className="p-8 text-center">
+                    <ArrowDownLeft className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No withdrawal requests yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                withdrawals.map((w, i) => (
+                  <motion.div key={w.id} initial="hidden" animate="visible" variants={fadeIn} custom={i * 0.3}>
+                    <Card className={`border-border bg-card ${w.status === "pending" ? "ring-1 ring-[hsl(var(--warning))]/30" : ""}`}>
+                      <CardContent className="p-3.5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {getNameForUser(w.user_id)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {getEmailForUser(w.user_id)} • {w.phone_number}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
+                            w.status === "completed" || w.status === "approved"
+                              ? "bg-primary/15 text-primary"
+                              : w.status === "pending"
+                              ? "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]"
+                              : "bg-destructive/15 text-destructive"
+                          }`}>
+                            {w.status}
+                          </span>
+                        </div>
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
+                            <p className="text-sm font-bold text-foreground">
+                              KSH {Number(w.amount_kes).toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(w.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {w.status === "pending" && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Notes (optional)"
+                                value={processingWithdrawal === w.id ? adminNotes : ""}
+                                onChange={(e) => { setProcessingWithdrawal(w.id); setAdminNotes(e.target.value); }}
+                                className="bg-secondary border-border h-7 text-[10px] w-24"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-[10px] border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                                onClick={() => handleWithdrawalAction(w.id, "approve")}
+                                disabled={processingWithdrawal === w.id}
+                              >
+                                {processingWithdrawal === w.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Approve</>}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-[10px] border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() => handleWithdrawalAction(w.id, "reject")}
+                                disabled={processingWithdrawal === w.id}
+                              >
+                                <X className="w-3 h-3 mr-1" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {w.admin_notes && (
+                          <p className="text-[10px] text-muted-foreground mt-2 italic">Note: {w.admin_notes}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
           {/* Activity Tab */}
           <TabsContent value="recent">
             <Card className="border-border bg-card">
