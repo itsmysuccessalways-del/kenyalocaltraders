@@ -265,12 +265,15 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-3 bg-card border border-border h-11 rounded-xl p-1">
+          <TabsList className="w-full grid grid-cols-4 bg-card border border-border h-11 rounded-xl p-1">
             <TabsTrigger value="users" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
               <Users className="w-3.5 h-3.5 mr-1.5" /> Users
             </TabsTrigger>
             <TabsTrigger value="deposits" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
               <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Deposits
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
+              <ArrowDownLeft className="w-3.5 h-3.5 mr-1.5" /> Withdrawals
             </TabsTrigger>
             <TabsTrigger value="recent" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
               <Activity className="w-3.5 h-3.5 mr-1.5" /> Activity
