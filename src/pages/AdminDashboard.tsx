@@ -9,10 +9,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Users, DollarSign, TrendingUp, Clock, Search,
   LogOut, Shield, Loader2, Edit, Activity,
-  UserCheck, CreditCard, ArrowUpRight,
+  UserCheck, CreditCard, ArrowUpRight, ArrowDownLeft,
+  Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -45,15 +47,29 @@ interface Deposit {
   payment_method: string | null;
 }
 
+interface Withdrawal {
+  id: string;
+  user_id: string;
+  amount_usd: number;
+  amount_kes: number;
+  phone_number: string;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingDeposit, setEditingDeposit] = useState<Deposit | null>(null);
   const [profitValue, setProfitValue] = useState("");
+  const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -74,13 +90,15 @@ const AdminDashboard = () => {
 
       setIsAdmin(true);
 
-      const [profilesRes, depositsRes] = await Promise.all([
+      const [profilesRes, depositsRes, withdrawalsRes] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("deposits").select("*").order("created_at", { ascending: false }),
+        supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (depositsRes.data) setDeposits(depositsRes.data as Deposit[]);
+      if (withdrawalsRes.data) setWithdrawals(withdrawalsRes.data as Withdrawal[]);
       setLoading(false);
     };
     init();
