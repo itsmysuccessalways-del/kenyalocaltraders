@@ -28,11 +28,15 @@ const Dashboard = () => {
   const [user, setUser] = useState<{ email?: string; full_name?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [deposits, setDeposits] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [depositAmount, setDepositAmount] = useState("");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [depositLoading, setDepositLoading] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
 
   const completedDeposits = deposits.filter((d) => d.status === "completed");
   const totalDeposits = completedDeposits.reduce((sum, d) => sum + Number(d.amount_kes), 0);
@@ -48,11 +52,12 @@ const Dashboard = () => {
         email: session.user.email,
         full_name: meta?.full_name || meta?.first_name || session.user.email?.split("@")[0],
       });
-      const { data } = await supabase
-        .from("deposits")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (data) setDeposits(data);
+      const [depositsRes, withdrawalsRes] = await Promise.all([
+        supabase.from("deposits").select("*").order("created_at", { ascending: false }),
+        supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
+      ]);
+      if (depositsRes.data) setDeposits(depositsRes.data);
+      if (withdrawalsRes.data) setWithdrawals(withdrawalsRes.data);
       setLoading(false);
     };
     init();
@@ -110,6 +115,54 @@ const Dashboard = () => {
     }
   };
 
+  const handleWithdraw = async () => {
+    const kes = parseFloat(withdrawAmount);
+    const approvedWithdrawn = withdrawals
+      .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
+      .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0);
+    const available = totalProfit - approvedWithdrawn;
+
+    if (!kes || kes <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    if (kes > available) {
+      toast.error(`Insufficient balance. Available: KSH ${available.toLocaleString()}`);
+      return;
+    }
+    if (!withdrawPhone.trim()) {
+      toast.error("Enter your M-Pesa phone number");
+      return;
+    }
+    setWithdrawLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) { toast.error("Please log in"); navigate("/login"); return; }
+
+      const amountUsd = kes / 150;
+      const { error } = await supabase.from("withdrawals").insert({
+        user_id: sessionData.session.user.id,
+        amount_usd: amountUsd,
+        amount_kes: kes,
+        phone_number: withdrawPhone.trim(),
+        status: "pending",
+      });
+
+      if (error) throw error;
+      toast.success("Withdrawal request submitted! Awaiting admin approval.");
+      setWithdrawAmount("");
+      setWithdrawPhone("");
+
+      // Refresh withdrawals
+      const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
+      if (data) setWithdrawals(data);
+    } catch (err: unknown) {
+      console.error("Withdrawal error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to submit withdrawal");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -298,11 +351,92 @@ const Dashboard = () => {
 
             <TabsContent value="withdraw">
               <Card className="border-border bg-card">
-                <CardContent className="p-4 text-center py-10">
-                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-3">
-                    <ArrowDownLeft className="w-6 h-6 text-muted-foreground" />
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ArrowDownLeft className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-bold text-foreground">Withdraw Profits</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">Withdrawals available after your first profitable trade.</p>
+                  <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground text-sm mb-1">
+                      Available: KSH {Math.max(0, totalProfit - withdrawals
+                        .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
+                        .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0)).toLocaleString()}
+                    </p>
+                    <p>• Withdraw profits to your M-Pesa</p>
+                    <p>• Admin approval required</p>
+                  </div>
+                  {totalProfit <= 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-muted-foreground">No profits available yet. Start trading!</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <Label htmlFor="wAmount" className="text-xs">Amount (KSH)</Label>
+                        <Input
+                          id="wAmount"
+                          type="number"
+                          min="1"
+                          placeholder="Enter amount in KSH"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
+                        <Input
+                          id="wPhone"
+                          type="tel"
+                          placeholder="e.g. 254700000000"
+                          value={withdrawPhone}
+                          onChange={(e) => setWithdrawPhone(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={handleWithdraw}
+                        disabled={withdrawLoading || !withdrawAmount || !withdrawPhone}
+                      >
+                        {withdrawLoading ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                        ) : (
+                          <>
+                            <ArrowDownLeft className="w-4 h-4 mr-2" />
+                            Withdraw {withdrawAmount ? `KSH ${parseFloat(withdrawAmount).toLocaleString()}` : ""}
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                  {/* Withdrawal history */}
+                  {withdrawals.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Withdrawals</p>
+                      {withdrawals.slice(0, 5).map((w: any) => (
+                        <div key={w.id} className="flex justify-between items-center p-2.5 rounded-lg bg-secondary/50">
+                          <div>
+                            <p className="text-xs font-medium text-foreground">Withdrawal</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(w.created_at).toLocaleDateString()} •{" "}
+                              <span className={
+                                w.status === "completed" ? "text-primary" :
+                                w.status === "approved" ? "text-[hsl(210,80%,55%)]" :
+                                w.status === "rejected" ? "text-destructive" :
+                                "text-[hsl(var(--warning))]"
+                              }>
+                                {w.status}
+                              </span>
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">
+                            KSH {Number(w.amount_kes).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

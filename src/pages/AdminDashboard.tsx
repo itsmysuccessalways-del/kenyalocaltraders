@@ -9,10 +9,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Users, DollarSign, TrendingUp, Clock, Search,
   LogOut, Shield, Loader2, Edit, Activity,
-  UserCheck, CreditCard, ArrowUpRight,
+  UserCheck, CreditCard, ArrowUpRight, ArrowDownLeft,
+  Check, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -45,15 +47,29 @@ interface Deposit {
   payment_method: string | null;
 }
 
+interface Withdrawal {
+  id: string;
+  user_id: string;
+  amount_usd: number;
+  amount_kes: number;
+  phone_number: string;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingDeposit, setEditingDeposit] = useState<Deposit | null>(null);
   const [profitValue, setProfitValue] = useState("");
+  const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -74,13 +90,15 @@ const AdminDashboard = () => {
 
       setIsAdmin(true);
 
-      const [profilesRes, depositsRes] = await Promise.all([
+      const [profilesRes, depositsRes, withdrawalsRes] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("deposits").select("*").order("created_at", { ascending: false }),
+        supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (depositsRes.data) setDeposits(depositsRes.data as Deposit[]);
+      if (withdrawalsRes.data) setWithdrawals(withdrawalsRes.data as Withdrawal[]);
       setLoading(false);
     };
     init();
@@ -109,6 +127,27 @@ const AdminDashboard = () => {
       );
       toast.success("Profit updated successfully");
       setEditingDeposit(null);
+    }
+  };
+
+  const handleWithdrawalAction = async (withdrawalId: string, action: "approve" | "reject") => {
+    setProcessingWithdrawal(withdrawalId);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+        body: { withdrawal_id: withdrawalId, action, admin_notes: adminNotes || undefined },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setWithdrawals((prev) =>
+        prev.map((w) => w.id === withdrawalId ? { ...w, status: action === "approve" ? "approved" : "rejected", admin_notes: adminNotes || null } : w)
+      );
+      toast.success(`Withdrawal ${action === "approve" ? "approved" : "rejected"}`);
+      setAdminNotes("");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
+    } finally {
+      setProcessingWithdrawal(null);
     }
   };
 
@@ -226,12 +265,15 @@ const AdminDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-3 bg-card border border-border h-11 rounded-xl p-1">
+          <TabsList className="w-full grid grid-cols-4 bg-card border border-border h-11 rounded-xl p-1">
             <TabsTrigger value="users" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
               <Users className="w-3.5 h-3.5 mr-1.5" /> Users
             </TabsTrigger>
             <TabsTrigger value="deposits" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
               <CreditCard className="w-3.5 h-3.5 mr-1.5" /> Deposits
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
+              <ArrowDownLeft className="w-3.5 h-3.5 mr-1.5" /> Withdrawals
             </TabsTrigger>
             <TabsTrigger value="recent" className="rounded-lg text-xs font-semibold data-[state=active]:bg-[hsl(280,70%,55%)] data-[state=active]:text-primary-foreground">
               <Activity className="w-3.5 h-3.5 mr-1.5" /> Activity
@@ -359,6 +401,90 @@ const AdminDashboard = () => {
                             </Button>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Withdrawals Tab */}
+          <TabsContent value="withdrawals">
+            <div className="space-y-2">
+              {withdrawals.length === 0 ? (
+                <Card className="border-border bg-card">
+                  <CardContent className="p-8 text-center">
+                    <ArrowDownLeft className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No withdrawal requests yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                withdrawals.map((w, i) => (
+                  <motion.div key={w.id} initial="hidden" animate="visible" variants={fadeIn} custom={i * 0.3}>
+                    <Card className={`border-border bg-card ${w.status === "pending" ? "ring-1 ring-[hsl(var(--warning))]/30" : ""}`}>
+                      <CardContent className="p-3.5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {getNameForUser(w.user_id)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {getEmailForUser(w.user_id)} • {w.phone_number}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
+                            w.status === "completed" || w.status === "approved"
+                              ? "bg-primary/15 text-primary"
+                              : w.status === "pending"
+                              ? "bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]"
+                              : "bg-destructive/15 text-destructive"
+                          }`}>
+                            {w.status}
+                          </span>
+                        </div>
+                        <div className="flex items-end justify-between">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
+                            <p className="text-sm font-bold text-foreground">
+                              KSH {Number(w.amount_kes).toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(w.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {w.status === "pending" && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Notes (optional)"
+                                value={processingWithdrawal === w.id ? adminNotes : ""}
+                                onChange={(e) => { setProcessingWithdrawal(w.id); setAdminNotes(e.target.value); }}
+                                className="bg-secondary border-border h-7 text-[10px] w-24"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-[10px] border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                                onClick={() => handleWithdrawalAction(w.id, "approve")}
+                                disabled={processingWithdrawal === w.id}
+                              >
+                                {processingWithdrawal === w.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Approve</>}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-[10px] border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() => handleWithdrawalAction(w.id, "reject")}
+                                disabled={processingWithdrawal === w.id}
+                              >
+                                <X className="w-3 h-3 mr-1" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {w.admin_notes && (
+                          <p className="text-[10px] text-muted-foreground mt-2 italic">Note: {w.admin_notes}</p>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
