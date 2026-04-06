@@ -115,6 +115,54 @@ const Dashboard = () => {
     }
   };
 
+  const handleWithdraw = async () => {
+    const kes = parseFloat(withdrawAmount);
+    const approvedWithdrawn = withdrawals
+      .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
+      .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0);
+    const available = totalProfit - approvedWithdrawn;
+
+    if (!kes || kes <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    if (kes > available) {
+      toast.error(`Insufficient balance. Available: KSH ${available.toLocaleString()}`);
+      return;
+    }
+    if (!withdrawPhone.trim()) {
+      toast.error("Enter your M-Pesa phone number");
+      return;
+    }
+    setWithdrawLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) { toast.error("Please log in"); navigate("/login"); return; }
+
+      const amountUsd = kes / 150;
+      const { error } = await supabase.from("withdrawals").insert({
+        user_id: sessionData.session.user.id,
+        amount_usd: amountUsd,
+        amount_kes: kes,
+        phone_number: withdrawPhone.trim(),
+        status: "pending",
+      });
+
+      if (error) throw error;
+      toast.success("Withdrawal request submitted! Awaiting admin approval.");
+      setWithdrawAmount("");
+      setWithdrawPhone("");
+
+      // Refresh withdrawals
+      const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
+      if (data) setWithdrawals(data);
+    } catch (err: unknown) {
+      console.error("Withdrawal error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to submit withdrawal");
+    } finally {
+      setWithdrawLoading(false);
+    }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
