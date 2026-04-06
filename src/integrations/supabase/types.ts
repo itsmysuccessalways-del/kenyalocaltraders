@@ -104,6 +104,45 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawals: {
+        Row: {
+          admin_notes: string | null
+          amount_kes: number
+          amount_usd: number
+          created_at: string
+          id: string
+          pesapal_order_tracking_id: string | null
+          phone_number: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_kes: number
+          amount_usd: number
+          created_at?: string
+          id?: string
+          pesapal_order_tracking_id?: string | null
+          phone_number: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_kes?: number
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          pesapal_order_tracking_id?: string | null
+          phone_number?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
