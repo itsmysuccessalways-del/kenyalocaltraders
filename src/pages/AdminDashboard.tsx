@@ -130,6 +130,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleWithdrawalAction = async (withdrawalId: string, action: "approve" | "reject") => {
+    setProcessingWithdrawal(withdrawalId);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+        body: { withdrawal_id: withdrawalId, action, admin_notes: adminNotes || undefined },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setWithdrawals((prev) =>
+        prev.map((w) => w.id === withdrawalId ? { ...w, status: action === "approve" ? "approved" : "rejected", admin_notes: adminNotes || null } : w)
+      );
+      toast.success(`Withdrawal ${action === "approve" ? "approved" : "rejected"}`);
+      setAdminNotes("");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
+    } finally {
+      setProcessingWithdrawal(null);
+    }
+  };
+
   const filteredProfiles = profiles.filter((p) => {
     const q = searchQuery.toLowerCase();
     return (
