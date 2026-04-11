@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,14 +9,16 @@ import { TrendingUp, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const Register = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email || !phone || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -31,9 +33,44 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      // Sign up with email confirmation disabled via options
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: undefined,
+          data: { phone },
+        },
+      });
       if (error) throw error;
-      toast.success("Account created! Please check your email to verify your account.");
+
+      // Save phone to profiles table
+      const userId = data.user?.id;
+      if (userId) {
+        await supabase.from("profiles").upsert({
+          user_id: userId,
+          email,
+          phone,
+          display_name: email.split("@")[0],
+        });
+      }
+
+      // Auto sign-in immediately (works when email confirmation is disabled in Supabase)
+      if (data.session) {
+        toast.success("Account created! Welcome aboard.");
+        navigate("/dashboard");
+      } else {
+        // If Supabase still requires confirmation, sign in manually
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          // Supabase has email confirmation enabled - inform user
+          toast.success("Account created! You can now sign in.");
+          navigate("/login");
+        } else {
+          toast.success("Account created! Welcome aboard.");
+          navigate("/dashboard");
+        }
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Registration failed";
       toast.error(message);
@@ -73,6 +110,16 @@ const Register = () => {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number (M-Pesa)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="e.g. 254700000000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
               <div>

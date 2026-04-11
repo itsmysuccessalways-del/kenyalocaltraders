@@ -14,7 +14,7 @@ import {
   Users, DollarSign, TrendingUp, Clock, Search,
   LogOut, Shield, Loader2, Edit, Activity,
   UserCheck, CreditCard, ArrowUpRight, ArrowDownLeft,
-  Check, X,
+  Check, X, CheckCircle2, Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -47,6 +47,11 @@ interface Deposit {
   payment_method: string | null;
 }
 
+interface EditingDeposit extends Deposit {
+  editAmountKes: string;
+  editStatus: string;
+}
+
 interface Withdrawal {
   id: string;
   user_id: string;
@@ -68,7 +73,10 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingDeposit, setEditingDeposit] = useState<Deposit | null>(null);
   const [profitValue, setProfitValue] = useState("");
+  const [editAmountValue, setEditAmountValue] = useState("");
+  const [editStatusValue, setEditStatusValue] = useState("");
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
+  const [completingWithdrawal, setCompletingWithdrawal] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
@@ -112,21 +120,70 @@ const AdminDashboard = () => {
   const handleSaveProfit = async () => {
     if (!editingDeposit) return;
     const profit = parseFloat(profitValue);
-    if (isNaN(profit)) { toast.error("Enter a valid number"); return; }
+    if (isNaN(profit)) { toast.error("Enter a valid profit number"); return; }
+
+    const amountKes = parseFloat(editAmountValue);
+    if (isNaN(amountKes) || amountKes <= 0) { toast.error("Enter a valid deposit amount"); return; }
+    const amountUsd = amountKes / 150;
 
     const { error } = await supabase
       .from("deposits")
-      .update({ profit_amount: profit })
+      .update({ profit_amount: profit, amount_kes: amountKes, amount_usd: amountUsd, status: editStatusValue })
       .eq("id", editingDeposit.id);
 
     if (error) {
-      toast.error("Failed to update profit");
+      toast.error("Failed to update deposit");
     } else {
       setDeposits((prev) =>
-        prev.map((d) => d.id === editingDeposit.id ? { ...d, profit_amount: profit } : d)
+        prev.map((d) => d.id === editingDeposit.id
+          ? { ...d, profit_amount: profit, amount_kes: amountKes, amount_usd: amountUsd, status: editStatusValue }
+          : d)
       );
-      toast.success("Profit updated successfully");
+      toast.success("Deposit updated successfully");
       setEditingDeposit(null);
+    }
+  };
+
+  const handleMarkCompleted = async (withdrawalId: string, amountKes: number, userId: string) => {
+    setCompletingWithdrawal(withdrawalId);
+    try {
+      // Mark withdrawal as completed
+      const { error: wError } = await supabase
+        .from("withdrawals")
+        .update({ status: "completed" })
+        .eq("id", withdrawalId);
+      if (wError) throw wError;
+
+      // Deduct amount from user's profit by reducing profit_amount on their completed deposits
+      // We subtract from the most recent completed deposit profit first
+      const userDeposits = deposits
+        .filter((d) => d.user_id === userId && d.status === "completed")
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      let remaining = amountKes;
+      for (const dep of userDeposits) {
+        if (remaining <= 0) break;
+        const currentProfit = Number(dep.profit_amount || 0);
+        const deduct = Math.min(currentProfit, remaining);
+        const newProfit = currentProfit - deduct;
+        await supabase
+          .from("deposits")
+          .update({ profit_amount: newProfit })
+          .eq("id", dep.id);
+        setDeposits((prev) =>
+          prev.map((d) => d.id === dep.id ? { ...d, profit_amount: newProfit } : d)
+        );
+        remaining -= deduct;
+      }
+
+      setWithdrawals((prev) =>
+        prev.map((w) => w.id === withdrawalId ? { ...w, status: "completed" } : w)
+      );
+      toast.success("Withdrawal marked as completed. Balance deducted.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to complete withdrawal");
+    } finally {
+      setCompletingWithdrawal(null);
     }
   };
 
@@ -315,9 +372,12 @@ const AdminDashboard = () => {
                                 {p.display_name || "No Name"}
                               </p>
                               <p className="text-[11px] text-muted-foreground truncate">{p.email || "—"}</p>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Phone className="w-3 h-3 text-primary shrink-0" />
+                                <p className="text-[11px] font-medium text-primary">{p.phone || "No phone"}</p>
+                              </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-[11px] text-muted-foreground">{p.phone || "No phone"}</p>
                               <p className="text-[10px] text-muted-foreground">
                                 {new Date(p.created_at).toLocaleDateString()}
                               </p>
@@ -395,6 +455,8 @@ const AdminDashboard = () => {
                               onClick={() => {
                                 setEditingDeposit(d);
                                 setProfitValue(String(d.profit_amount || 0));
+                                setEditAmountValue(String(d.amount_kes));
+                                setEditStatusValue(d.status);
                               }}
                             >
                               <Edit className="w-3 h-3 mr-1" /> Edit
@@ -481,6 +543,20 @@ const AdminDashboard = () => {
                               </Button>
                             </div>
                           )}
+                          {w.status === "approved" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2.5 text-[10px] border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                              onClick={() => handleMarkCompleted(w.id, Number(w.amount_kes), w.user_id)}
+                              disabled={completingWithdrawal === w.id}
+                            >
+                              {completingWithdrawal === w.id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <><CheckCircle2 className="w-3 h-3 mr-1" /> Mark Completed</>
+                              }
+                            </Button>
+                          )}
                         </div>
                         {w.admin_notes && (
                           <p className="text-[10px] text-muted-foreground mt-2 italic">Note: {w.admin_notes}</p>
@@ -542,18 +618,41 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
 
-      {/* Edit Profit Dialog */}
+      {/* Edit Deposit Dialog */}
       <Dialog open={!!editingDeposit} onOpenChange={(open) => !open && setEditingDeposit(null)}>
         <DialogContent className="bg-card border-border max-w-[calc(100%-2rem)] sm:max-w-sm rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Edit Profit</DialogTitle>
+            <DialogTitle className="text-foreground">Edit Deposit</DialogTitle>
           </DialogHeader>
           {editingDeposit && (
             <div className="space-y-3">
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-xs text-muted-foreground">User</p>
                 <p className="text-sm font-medium text-foreground">{getNameForUser(editingDeposit.user_id)}</p>
-                <p className="text-xs text-muted-foreground mt-1">Deposit: KSH {Number(editingDeposit.amount_kes).toLocaleString()}</p>
+              </div>
+              <div>
+                <Label htmlFor="editAmount" className="text-xs">Deposit Amount (KES)</Label>
+                <Input
+                  id="editAmount"
+                  type="number"
+                  value={editAmountValue}
+                  onChange={(e) => setEditAmountValue(e.target.value)}
+                  className="bg-secondary border-border mt-1"
+                  placeholder="Enter deposit amount in KES"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editStatus" className="text-xs">Status</Label>
+                <select
+                  id="editStatus"
+                  value={editStatusValue}
+                  onChange={(e) => setEditStatusValue(e.target.value)}
+                  className="w-full mt-1 h-10 rounded-md border border-border bg-secondary px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="pending">pending</option>
+                  <option value="completed">completed</option>
+                  <option value="failed">failed</option>
+                </select>
               </div>
               <div>
                 <Label htmlFor="profit" className="text-xs">Profit Amount (KES)</Label>
@@ -573,7 +672,7 @@ const AdminDashboard = () => {
               Cancel
             </Button>
             <Button onClick={handleSaveProfit} className="bg-[hsl(280,70%,55%)] hover:bg-[hsl(280,70%,45%)]">
-              Save Profit
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
