@@ -235,6 +235,11 @@ const AdminDashboard = () => {
     return p?.display_name || p?.email?.split("@")[0] || "Unknown";
   };
 
+  const getPhoneForUser = (userId: string) => {
+    const p = profiles.find((pr) => pr.user_id === userId);
+    return p?.phone || "No phone";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -418,6 +423,10 @@ const AdminDashboard = () => {
                             <p className="text-[10px] text-muted-foreground truncate">
                               {getEmailForUser(d.user_id)}
                             </p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-primary shrink-0" />
+                              <p className="text-[10px] font-medium text-primary">{getPhoneForUser(d.user_id)}</p>
+                            </div>
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
                             d.status === "completed"
