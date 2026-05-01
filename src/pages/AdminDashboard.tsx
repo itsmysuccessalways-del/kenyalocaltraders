@@ -423,6 +423,10 @@ const AdminDashboard = () => {
                             <p className="text-[10px] text-muted-foreground truncate">
                               {getEmailForUser(d.user_id)}
                             </p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-primary shrink-0" />
+                              <p className="text-[10px] font-medium text-primary">{getPhoneForUser(d.user_id)}</p>
+                            </div>
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
                             d.status === "completed"
