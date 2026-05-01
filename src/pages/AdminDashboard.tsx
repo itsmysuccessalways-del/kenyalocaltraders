@@ -235,6 +235,11 @@ const AdminDashboard = () => {
     return p?.display_name || p?.email?.split("@")[0] || "Unknown";
   };
 
+  const getPhoneForUser = (userId: string) => {
+    const p = profiles.find((pr) => pr.user_id === userId);
+    return p?.phone || "No phone";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
