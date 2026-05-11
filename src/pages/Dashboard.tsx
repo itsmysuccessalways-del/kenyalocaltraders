@@ -50,13 +50,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [depositAmount, setDepositAmount] = useState("");
-  const [phone, setPhone] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [depositAmount, setDepositAmount] = useState(""); // USD
   const [depositLoading, setDepositLoading] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState(""); // USD
+  const [withdrawPaypalEmail, setWithdrawPaypalEmail] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
   const applyingRef = useRef<Set<string>>(new Set());
