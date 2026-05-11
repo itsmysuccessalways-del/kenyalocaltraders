@@ -521,9 +521,9 @@ const Dashboard = () => {
                   </div>
                   <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground">
                     <p className="font-medium text-foreground text-sm mb-1">
-                      Available: KSH {availableBalance.toLocaleString()}
+                      Available: ${availableBalanceUsd.toFixed(2)} <span className="text-muted-foreground">(≈ KSH {availableBalance.toLocaleString()})</span>
                     </p>
-                    <p>• Withdraw profits to your M-Pesa</p>
+                    <p>• Withdraw profits to your PayPal account</p>
                     <p>• Admin approval required</p>
                   </div>
                   {availableBalance <= 0 ? (
@@ -543,39 +543,40 @@ const Dashboard = () => {
                   ) : (
                     <>
                       <div>
-                        <Label htmlFor="wAmount" className="text-xs">Amount (KSH)</Label>
+                        <Label htmlFor="wAmount" className="text-xs">Amount (USD)</Label>
                         <Input
                           id="wAmount"
                           type="number"
-                          min="1"
-                          placeholder="Enter amount in KSH"
+                          min="0.1"
+                          step="0.01"
+                          placeholder="Enter amount in USD"
                           value={withdrawAmount}
                           onChange={(e) => setWithdrawAmount(e.target.value)}
                           className="bg-secondary border-border"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
+                        <Label htmlFor="wEmail" className="text-xs">PayPal Email</Label>
                         <Input
-                          id="wPhone"
-                          type="tel"
-                          placeholder="e.g. 254700000000"
-                          value={withdrawPhone}
-                          onChange={(e) => setWithdrawPhone(e.target.value)}
+                          id="wEmail"
+                          type="email"
+                          placeholder="you@paypal.com"
+                          value={withdrawPaypalEmail}
+                          onChange={(e) => setWithdrawPaypalEmail(e.target.value)}
                           className="bg-secondary border-border"
                         />
                       </div>
                       <Button
                         className="w-full"
                         onClick={handleWithdraw}
-                        disabled={withdrawLoading || !withdrawAmount || !withdrawPhone}
+                        disabled={withdrawLoading || !withdrawAmount || !withdrawPaypalEmail}
                       >
                         {withdrawLoading ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
                         ) : (
                           <>
                             <ArrowDownLeft className="w-4 h-4 mr-2" />
-                            Withdraw {withdrawAmount ? `KSH ${parseFloat(withdrawAmount).toLocaleString()}` : ""}
+                            Withdraw {withdrawAmount ? `$${parseFloat(withdrawAmount).toFixed(2)}` : ""}
                           </>
                         )}
                       </Button>
