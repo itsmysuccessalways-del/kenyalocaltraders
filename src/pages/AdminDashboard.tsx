@@ -559,7 +559,7 @@ const AdminDashboard = () => {
                                 onClick={() => handleWithdrawalAction(w.id, "approve")}
                                 disabled={processingWithdrawal === w.id}
                               >
-                                {processingWithdrawal === w.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Approve</>}
+                                {processingWithdrawal === w.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Send Payout</>}
                               </Button>
                               <Button
                                 variant="outline"
