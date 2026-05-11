@@ -8,13 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, DollarSign, Loader2, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
-const EXCHANGE_RATE = 150; // approximate KSH per USD
+const EXCHANGE_RATE = 150;
 
 const Deposit = () => {
   const [amountUsd, setAmountUsd] = useState("");
-  const [phone, setPhone] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -27,11 +24,6 @@ const Deposit = () => {
       return;
     }
 
-    if (!phone.trim()) {
-      toast.error("Please enter your phone number for M-Pesa");
-      return;
-    }
-
     setLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -41,29 +33,25 @@ const Deposit = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("pesapal", {
+      const { data, error } = await supabase.functions.invoke("paypal-create-order", {
         body: {
           amount_usd: usd,
-          amount_kes: parseFloat(amountKes),
-          phone: phone.trim(),
-          first_name: firstName.trim() || "Customer",
-          last_name: lastName.trim(),
-          callback_url: `${window.location.origin}/deposit/callback`,
+          return_url: `${window.location.origin}/deposit/callback`,
+          cancel_url: `${window.location.origin}/deposit`,
         },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      if (data?.redirect_url) {
-        window.location.href = data.redirect_url;
+      if (data?.approval_url) {
+        window.location.href = data.approval_url;
       } else {
-        throw new Error("No redirect URL received from Pesapal");
+        throw new Error("No approval URL received from PayPal");
       }
     } catch (err: unknown) {
       console.error("Deposit error:", err);
-      const message = err instanceof Error ? err.message : "Failed to initiate deposit";
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : "Failed to initiate deposit");
     } finally {
       setLoading(false);
     }
@@ -71,7 +59,6 @@ const Deposit = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <Link to="/" className="flex items-center gap-2">
@@ -100,10 +87,10 @@ const Deposit = () => {
               <Input
                 id="amount"
                 type="number"
-                min="1"
+                min="0.1"
                 max="200"
                 step="0.01"
-                placeholder="Enter amount ($1 - $200)"
+                placeholder="Enter amount ($0.1 - $200)"
                 value={amountUsd}
                 onChange={(e) => setAmountUsd(e.target.value)}
               />
@@ -114,54 +101,22 @@ const Deposit = () => {
               )}
             </div>
 
-            <div>
-              <Label htmlFor="phone">M-Pesa Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="e.g. 254700000000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="First name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Last name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
-            </div>
-
             <div className="bg-secondary rounded-lg p-3 text-sm text-muted-foreground">
-              <p>• Min deposit: $0.1 (~KSH 15)</p>
-              <p>• Max deposit: $200 (~KSH 30,000)</p>
-              <p>• Payment via Pesapal (M-Pesa, Card, etc.)</p>
+              <p>• Min deposit: $0.1</p>
+              <p>• Max deposit: $200</p>
+              <p>• Secure payment via PayPal (card or PayPal balance)</p>
             </div>
 
             <Button
               className="w-full"
               size="lg"
               onClick={handleDeposit}
-              disabled={loading || !amountUsd || !phone}
+              disabled={loading || !amountUsd}
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to PayPal...</>
               ) : (
-                <>Deposit KES {amountKes}</>
+                <>Pay ${amountUsd || "0.00"} with PayPal</>
               )}
             </Button>
           </CardContent>
