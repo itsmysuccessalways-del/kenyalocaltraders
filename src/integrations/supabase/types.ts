@@ -21,7 +21,9 @@ export type Database = {
           created_at: string
           id: string
           payment_method: string | null
-          pesapal_merchant_reference: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
+          pesapal_merchant_reference: string | null
           pesapal_order_tracking_id: string | null
           profit_amount: number | null
           status: string
@@ -34,7 +36,9 @@ export type Database = {
           created_at?: string
           id?: string
           payment_method?: string | null
-          pesapal_merchant_reference: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          pesapal_merchant_reference?: string | null
           pesapal_order_tracking_id?: string | null
           profit_amount?: number | null
           status?: string
@@ -47,7 +51,9 @@ export type Database = {
           created_at?: string
           id?: string
           payment_method?: string | null
-          pesapal_merchant_reference?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          pesapal_merchant_reference?: string | null
           pesapal_order_tracking_id?: string | null
           profit_amount?: number | null
           status?: string
@@ -111,8 +117,11 @@ export type Database = {
           amount_usd: number
           created_at: string
           id: string
+          paypal_email: string | null
+          paypal_payout_batch_id: string | null
+          paypal_payout_item_id: string | null
           pesapal_order_tracking_id: string | null
-          phone_number: string
+          phone_number: string | null
           status: string
           updated_at: string
           user_id: string
@@ -123,8 +132,11 @@ export type Database = {
           amount_usd: number
           created_at?: string
           id?: string
+          paypal_email?: string | null
+          paypal_payout_batch_id?: string | null
+          paypal_payout_item_id?: string | null
           pesapal_order_tracking_id?: string | null
-          phone_number: string
+          phone_number?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -135,8 +147,11 @@ export type Database = {
           amount_usd?: number
           created_at?: string
           id?: string
+          paypal_email?: string | null
+          paypal_payout_batch_id?: string | null
+          paypal_payout_item_id?: string | null
           pesapal_order_tracking_id?: string | null
-          phone_number?: string
+          phone_number?: string | null
           status?: string
           updated_at?: string
           user_id?: string
