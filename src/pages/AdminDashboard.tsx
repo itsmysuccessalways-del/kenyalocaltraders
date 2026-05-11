@@ -57,7 +57,9 @@ interface Withdrawal {
   user_id: string;
   amount_usd: number;
   amount_kes: number;
-  phone_number: string;
+  phone_number: string | null;
+  paypal_email: string | null;
+  paypal_payout_batch_id: string | null;
   status: string;
   admin_notes: string | null;
   created_at: string;
@@ -190,16 +192,34 @@ const AdminDashboard = () => {
   const handleWithdrawalAction = async (withdrawalId: string, action: "approve" | "reject") => {
     setProcessingWithdrawal(withdrawalId);
     try {
-      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
-        body: { withdrawal_id: withdrawalId, action, admin_notes: adminNotes || undefined },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (action === "reject") {
+        const { error } = await supabase
+          .from("withdrawals")
+          .update({ status: "rejected", admin_notes: adminNotes || null })
+          .eq("id", withdrawalId);
+        if (error) throw error;
+        setWithdrawals((prev) =>
+          prev.map((w) => w.id === withdrawalId ? { ...w, status: "rejected", admin_notes: adminNotes || null } : w)
+        );
+        toast.success("Withdrawal rejected");
+      } else {
+        // Approve = trigger PayPal payout
+        const { data, error } = await supabase.functions.invoke("paypal-payout", {
+          body: { withdrawal_id: withdrawalId },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
-      setWithdrawals((prev) =>
-        prev.map((w) => w.id === withdrawalId ? { ...w, status: action === "approve" ? "approved" : "rejected", admin_notes: adminNotes || null } : w)
-      );
-      toast.success(`Withdrawal ${action === "approve" ? "approved" : "rejected"}`);
+        if (adminNotes) {
+          await supabase.from("withdrawals").update({ admin_notes: adminNotes }).eq("id", withdrawalId);
+        }
+        setWithdrawals((prev) =>
+          prev.map((w) => w.id === withdrawalId
+            ? { ...w, status: "processing", paypal_payout_batch_id: data?.batch_id ?? null, admin_notes: adminNotes || w.admin_notes }
+            : w)
+        );
+        toast.success("PayPal payout sent! Mark completed once funds clear.");
+      }
       setAdminNotes("");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
@@ -501,7 +521,7 @@ const AdminDashboard = () => {
                               {getNameForUser(w.user_id)}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
-                              {getEmailForUser(w.user_id)} • {w.phone_number}
+                              {getEmailForUser(w.user_id)} • {w.paypal_email || w.phone_number || "—"}
                             </p>
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
@@ -518,7 +538,7 @@ const AdminDashboard = () => {
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
                             <p className="text-sm font-bold text-foreground">
-                              KSH {Number(w.amount_kes).toLocaleString()}
+                              ${Number(w.amount_usd).toFixed(2)} <span className="text-[10px] text-muted-foreground font-normal">(KSH {Number(w.amount_kes).toLocaleString()})</span>
                             </p>
                             <p className="text-[10px] text-muted-foreground">
                               {new Date(w.created_at).toLocaleDateString()}
@@ -539,7 +559,7 @@ const AdminDashboard = () => {
                                 onClick={() => handleWithdrawalAction(w.id, "approve")}
                                 disabled={processingWithdrawal === w.id}
                               >
-                                {processingWithdrawal === w.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Approve</>}
+                                {processingWithdrawal === w.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Check className="w-3 h-3 mr-1" /> Send Payout</>}
                               </Button>
                               <Button
                                 variant="outline"
@@ -552,7 +572,7 @@ const AdminDashboard = () => {
                               </Button>
                             </div>
                           )}
-                          {w.status === "approved" && (
+                          {(w.status === "approved" || w.status === "processing") && (
                             <Button
                               variant="outline"
                               size="sm"

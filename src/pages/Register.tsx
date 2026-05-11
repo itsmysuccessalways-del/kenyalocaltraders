@@ -113,7 +113,7 @@ const Register = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="phone">Phone Number (M-Pesa)</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"

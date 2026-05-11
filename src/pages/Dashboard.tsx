@@ -50,13 +50,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [depositAmount, setDepositAmount] = useState("");
-  const [phone, setPhone] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [depositAmount, setDepositAmount] = useState(""); // USD
   const [depositLoading, setDepositLoading] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState(""); // USD
+  const [withdrawPaypalEmail, setWithdrawPaypalEmail] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
   const applyingRef = useRef<Set<string>>(new Set());
@@ -158,31 +155,26 @@ const Dashboard = () => {
   };
 
   const handleDeposit = async () => {
-    const kes = parseFloat(depositAmount);
-    if (!kes || kes < 15 || kes > 30000) {
-      toast.error("Amount must be between KSH 15 (~$0.1) and KSH 30,000");
-      return;
-    }
-    if (!phone.trim()) {
-      toast.error("Please enter your M-Pesa phone number");
+    const usd = parseFloat(depositAmount);
+    if (!usd || usd < 0.1 || usd > 200) {
+      toast.error("Amount must be between $0.1 and $200");
       return;
     }
     setDepositLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) { toast.error("Please log in first"); navigate("/login"); return; }
-      const amountUsd = kes / 150;
-      const { data, error } = await supabase.functions.invoke("pesapal", {
+      const { data, error } = await supabase.functions.invoke("paypal-create-order", {
         body: {
-          amount_usd: amountUsd, amount_kes: kes, phone: phone.trim(),
-          first_name: firstName.trim() || "Customer", last_name: lastName.trim(),
-          callback_url: `${window.location.origin}/deposit/callback`,
+          amount_usd: usd,
+          return_url: `${window.location.origin}/deposit/callback`,
+          cancel_url: `${window.location.origin}/dashboard`,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.redirect_url) { window.location.href = data.redirect_url; }
-      else { throw new Error("No redirect URL received"); }
+      if (data?.approval_url) { window.location.href = data.approval_url; }
+      else { throw new Error("No approval URL received"); }
     } catch (err: unknown) {
       console.error("Deposit error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to initiate deposit");
@@ -192,22 +184,22 @@ const Dashboard = () => {
   };
 
   const handleWithdraw = async () => {
-    const kes = parseFloat(withdrawAmount);
+    const usd = parseFloat(withdrawAmount);
     const approvedWithdrawn = withdrawals
       .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
-      .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0);
-    const available = totalProfit - approvedWithdrawn;
+      .reduce((sum: number, w: any) => sum + Number(w.amount_usd), 0);
+    const availableUsd = totalProfitUsd - approvedWithdrawn;
 
-    if (!kes || kes <= 0) {
+    if (!usd || usd <= 0) {
       toast.error("Enter a valid amount");
       return;
     }
-    if (kes > available) {
-      toast.error(`Insufficient balance. Available: KSH ${available.toLocaleString()}`);
+    if (usd > availableUsd) {
+      toast.error(`Insufficient balance. Available: $${availableUsd.toFixed(2)}`);
       return;
     }
-    if (!withdrawPhone.trim()) {
-      toast.error("Enter your M-Pesa phone number");
+    if (!withdrawPaypalEmail.trim() || !/^\S+@\S+\.\S+$/.test(withdrawPaypalEmail.trim())) {
+      toast.error("Enter a valid PayPal email address");
       return;
     }
     setWithdrawLoading(true);
@@ -215,19 +207,19 @@ const Dashboard = () => {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) { toast.error("Please log in"); navigate("/login"); return; }
 
-      const amountUsd = kes / 150;
+      const amountKes = usd * 150;
       const { error } = await supabase.from("withdrawals").insert({
         user_id: sessionData.session.user.id,
-        amount_usd: amountUsd,
-        amount_kes: kes,
-        phone_number: withdrawPhone.trim(),
+        amount_usd: usd,
+        amount_kes: amountKes,
+        paypal_email: withdrawPaypalEmail.trim(),
         status: "pending",
       });
 
       if (error) throw error;
       toast.success("Withdrawal request submitted! Awaiting admin approval.");
       setWithdrawAmount("");
-      setWithdrawPhone("");
+      setWithdrawPaypalEmail("");
 
       const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
       if (data) setWithdrawals(data);
@@ -243,6 +235,7 @@ const Dashboard = () => {
   const completedDeposits = deposits.filter((d) => d.status === "completed");
   const totalDeposits = completedDeposits.reduce((sum, d) => sum + Number(d.amount_kes), 0);
   const totalProfit = deposits.reduce((sum, d) => sum + Number(d.profit_amount || 0), 0);
+  const totalProfitUsd = totalProfit / 150;
   const pendingTrades = deposits.filter((d) => d.status === "pending").reduce((sum, d) => sum + Number(d.amount_kes), 0);
   const availableBalance = Math.max(
     0,
@@ -250,6 +243,7 @@ const Dashboard = () => {
       .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
       .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0)
   );
+  const availableBalanceUsd = availableBalance / 150;
 
   // Deposits waiting for their 30-min timer
   const pendingProfitDeposits = completedDeposits.filter((d) => {
@@ -475,61 +469,41 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="depositAmount" className="text-xs">Amount (KSH)</Label>
+                    <Label htmlFor="depositAmount" className="text-xs">Amount (USD)</Label>
                     <Input
                       id="depositAmount"
                       type="number"
-                      min="15"
-                      max="30000"
-                      placeholder="KSH 15 - 30,000"
+                      min="0.1"
+                      max="200"
+                      step="0.01"
+                      placeholder="$0.1 - $200"
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
                       className="bg-secondary border-border"
                     />
-                    {depositAmount && parseFloat(depositAmount) >= 15 && (
+                    {depositAmount && parseFloat(depositAmount) >= 0.1 && (
                       <p className="text-[11px] text-primary mt-1">
-                        You'll receive <span className="font-bold">+KSH {Math.round(parseFloat(depositAmount) * 0.5).toLocaleString()}</span> profit after 30 min
+                        ≈ KSH {(parseFloat(depositAmount) * 150).toLocaleString()} • You'll receive <span className="font-bold">+${(parseFloat(depositAmount) * 0.5).toFixed(2)}</span> profit after 30 min
                       </p>
                     )}
                   </div>
-                  <div>
-                    <Label htmlFor="dPhone" className="text-xs">M-Pesa Phone Number</Label>
-                    <Input
-                      id="dPhone"
-                      type="tel"
-                      placeholder="e.g. 254700000000"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="dFirst" className="text-xs">First Name</Label>
-                      <Input id="dFirst" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-secondary border-border" />
-                    </div>
-                    <div>
-                      <Label htmlFor="dLast" className="text-xs">Last Name</Label>
-                      <Input id="dLast" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-secondary border-border" />
-                    </div>
-                  </div>
                   <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                    <p>• Min deposit: KSH 15 (~$0.1)</p>
-                    <p>• Max deposit: KSH 30,000 (~$200)</p>
-                    <p>• Payment via Pesapal (M-Pesa, Card)</p>
+                    <p>• Min deposit: $0.1</p>
+                    <p>• Max deposit: $200</p>
+                    <p>• Secure payment via PayPal (card or PayPal balance)</p>
                     <p className="text-primary font-medium">• 50% profit credited after 30 minutes</p>
                   </div>
                   <Button
                     className="w-full"
                     onClick={handleDeposit}
-                    disabled={depositLoading || !depositAmount || !phone}
+                    disabled={depositLoading || !depositAmount}
                   >
                     {depositLoading ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to PayPal...</>
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4 mr-2" />
-                        Deposit {depositAmount ? `KSH ${parseFloat(depositAmount).toLocaleString()}` : ""}
+                        Pay ${depositAmount || "0.00"} with PayPal
                       </>
                     )}
                   </Button>
@@ -547,9 +521,9 @@ const Dashboard = () => {
                   </div>
                   <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground">
                     <p className="font-medium text-foreground text-sm mb-1">
-                      Available: KSH {availableBalance.toLocaleString()}
+                      Available: ${availableBalanceUsd.toFixed(2)} <span className="text-muted-foreground">(≈ KSH {availableBalance.toLocaleString()})</span>
                     </p>
-                    <p>• Withdraw profits to your M-Pesa</p>
+                    <p>• Withdraw profits to your PayPal account</p>
                     <p>• Admin approval required</p>
                   </div>
                   {availableBalance <= 0 ? (
@@ -569,39 +543,40 @@ const Dashboard = () => {
                   ) : (
                     <>
                       <div>
-                        <Label htmlFor="wAmount" className="text-xs">Amount (KSH)</Label>
+                        <Label htmlFor="wAmount" className="text-xs">Amount (USD)</Label>
                         <Input
                           id="wAmount"
                           type="number"
-                          min="1"
-                          placeholder="Enter amount in KSH"
+                          min="0.1"
+                          step="0.01"
+                          placeholder="Enter amount in USD"
                           value={withdrawAmount}
                           onChange={(e) => setWithdrawAmount(e.target.value)}
                           className="bg-secondary border-border"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
+                        <Label htmlFor="wEmail" className="text-xs">PayPal Email</Label>
                         <Input
-                          id="wPhone"
-                          type="tel"
-                          placeholder="e.g. 254700000000"
-                          value={withdrawPhone}
-                          onChange={(e) => setWithdrawPhone(e.target.value)}
+                          id="wEmail"
+                          type="email"
+                          placeholder="you@paypal.com"
+                          value={withdrawPaypalEmail}
+                          onChange={(e) => setWithdrawPaypalEmail(e.target.value)}
                           className="bg-secondary border-border"
                         />
                       </div>
                       <Button
                         className="w-full"
                         onClick={handleWithdraw}
-                        disabled={withdrawLoading || !withdrawAmount || !withdrawPhone}
+                        disabled={withdrawLoading || !withdrawAmount || !withdrawPaypalEmail}
                       >
                         {withdrawLoading ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
                         ) : (
                           <>
                             <ArrowDownLeft className="w-4 h-4 mr-2" />
-                            Withdraw {withdrawAmount ? `KSH ${parseFloat(withdrawAmount).toLocaleString()}` : ""}
+                            Withdraw {withdrawAmount ? `$${parseFloat(withdrawAmount).toFixed(2)}` : ""}
                           </>
                         )}
                       </Button>

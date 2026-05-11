@@ -80,7 +80,7 @@ const Index = () => {
           <p className="text-center text-muted-foreground mb-12">Simple 4-step process to start earning from forex trading</p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Wallet, title: "Deposit Funds", desc: "Add funds securely via M-Pesa. Min $0.1 (~KSH 15), max $200 (~KSH 30,000).", color: "text-primary" },
+              { icon: Wallet, title: "Deposit Funds", desc: "Add funds securely via PayPal (card or PayPal balance). Min $0.1, max $200.", color: "text-primary" },
               { icon: BarChart3, title: "We Trade for You", desc: "Your deposit is pooled and traded using our proven strategy.", color: "text-gold" },
               { icon: DollarSign, title: "Profit Sharing", desc: "Profits calculated after 24 hours and shared automatically. 10% commission.", color: "text-primary" },
               { icon: Shield, title: "Loss Protection", desc: "Initial deposits are refunded in the unlikely event of a loss.", color: "text-gold" },
@@ -170,7 +170,7 @@ const Index = () => {
               { q: "What happens if a trade loses?", a: "Your initial deposit is fully refunded in the unlikely event of a trading loss. We absorb all losses to protect your investment." },
               { q: "What are the deposit limits?", a: "Minimum deposit is $0.1 (~KSH 15) and maximum deposit is $200 (~KSH 30,000) per transaction." },
               { q: "How much commission do you charge?", a: "We charge a 10% commission on profits only. If there's no profit, there's no commission. Your deposits are never touched." },
-              { q: "How do I withdraw my money?", a: "You can request a withdrawal anytime after profit distribution. Funds are sent directly to your M-Pesa number, usually within 24 hours." },
+              { q: "How do I withdraw my money?", a: "You can request a withdrawal anytime after profit distribution. Funds are sent directly to your PayPal email, usually within 24 hours of admin approval." },
             ].map((faq, i) => (
               <AccordionItem key={i} value={`item-${i}`}>
                 <AccordionTrigger>{faq.q}</AccordionTrigger>

@@ -1,9 +1,45 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, TrendingUp } from "lucide-react";
+import { CheckCircle, Loader2, TrendingUp, XCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const DepositCallback = () => {
+  const [params] = useSearchParams();
+  const [state, setState] = useState<"loading" | "success" | "error">("loading");
+  const [message, setMessage] = useState("Confirming your payment...");
+
+  useEffect(() => {
+    const orderId = params.get("token"); // PayPal returns ?token=ORDER_ID&PayerID=...
+    if (!orderId) {
+      setState("error");
+      setMessage("Missing PayPal order reference.");
+      return;
+    }
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("paypal-capture-order", {
+          body: { order_id: orderId },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data?.status === "completed") {
+          setState("success");
+          setMessage("Payment received! Your deposit is now active.");
+        } else {
+          setState("error");
+          setMessage("Payment is still pending. We'll update you once confirmed.");
+        }
+      } catch (err) {
+        console.error(err);
+        setState("error");
+        setMessage(err instanceof Error ? err.message : "Failed to confirm payment.");
+      }
+    })();
+  }, [params]);
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
@@ -20,14 +56,16 @@ const DepositCallback = () => {
       <div className="container mx-auto px-4 py-20 max-w-md text-center">
         <Card>
           <CardContent className="pt-8 pb-8 space-y-4">
-            <CheckCircle className="w-16 h-16 text-primary mx-auto" />
-            <h2 className="text-2xl font-bold text-foreground">Payment Submitted</h2>
-            <p className="text-muted-foreground">
-              Your deposit is being processed. You'll see it reflected in your account once confirmed by Pesapal.
-            </p>
+            {state === "loading" && <Loader2 className="w-16 h-16 text-primary mx-auto animate-spin" />}
+            {state === "success" && <CheckCircle className="w-16 h-16 text-primary mx-auto" />}
+            {state === "error" && <XCircle className="w-16 h-16 text-destructive mx-auto" />}
+            <h2 className="text-2xl font-bold text-foreground">
+              {state === "loading" ? "Processing..." : state === "success" ? "Payment Confirmed" : "Payment Issue"}
+            </h2>
+            <p className="text-muted-foreground">{message}</p>
             <div className="flex flex-col gap-2 pt-4">
               <Button asChild>
-                <Link to="/">Back to Home</Link>
+                <Link to="/dashboard">Go to Dashboard</Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link to="/deposit">Make Another Deposit</Link>
