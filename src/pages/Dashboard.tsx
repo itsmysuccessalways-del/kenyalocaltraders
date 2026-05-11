@@ -469,61 +469,41 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="depositAmount" className="text-xs">Amount (KSH)</Label>
+                    <Label htmlFor="depositAmount" className="text-xs">Amount (USD)</Label>
                     <Input
                       id="depositAmount"
                       type="number"
-                      min="15"
-                      max="30000"
-                      placeholder="KSH 15 - 30,000"
+                      min="0.1"
+                      max="200"
+                      step="0.01"
+                      placeholder="$0.1 - $200"
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
                       className="bg-secondary border-border"
                     />
-                    {depositAmount && parseFloat(depositAmount) >= 15 && (
+                    {depositAmount && parseFloat(depositAmount) >= 0.1 && (
                       <p className="text-[11px] text-primary mt-1">
-                        You'll receive <span className="font-bold">+KSH {Math.round(parseFloat(depositAmount) * 0.5).toLocaleString()}</span> profit after 30 min
+                        ≈ KSH {(parseFloat(depositAmount) * 150).toLocaleString()} • You'll receive <span className="font-bold">+${(parseFloat(depositAmount) * 0.5).toFixed(2)}</span> profit after 30 min
                       </p>
                     )}
                   </div>
-                  <div>
-                    <Label htmlFor="dPhone" className="text-xs">M-Pesa Phone Number</Label>
-                    <Input
-                      id="dPhone"
-                      type="tel"
-                      placeholder="e.g. 254700000000"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="dFirst" className="text-xs">First Name</Label>
-                      <Input id="dFirst" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-secondary border-border" />
-                    </div>
-                    <div>
-                      <Label htmlFor="dLast" className="text-xs">Last Name</Label>
-                      <Input id="dLast" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-secondary border-border" />
-                    </div>
-                  </div>
                   <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                    <p>• Min deposit: KSH 15 (~$0.1)</p>
-                    <p>• Max deposit: KSH 30,000 (~$200)</p>
-                    <p>• Payment via Pesapal (M-Pesa, Card)</p>
+                    <p>• Min deposit: $0.1</p>
+                    <p>• Max deposit: $200</p>
+                    <p>• Secure payment via PayPal (card or PayPal balance)</p>
                     <p className="text-primary font-medium">• 50% profit credited after 30 minutes</p>
                   </div>
                   <Button
                     className="w-full"
                     onClick={handleDeposit}
-                    disabled={depositLoading || !depositAmount || !phone}
+                    disabled={depositLoading || !depositAmount}
                   >
                     {depositLoading ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to PayPal...</>
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4 mr-2" />
-                        Deposit {depositAmount ? `KSH ${parseFloat(depositAmount).toLocaleString()}` : ""}
+                        Pay ${depositAmount || "0.00"} with PayPal
                       </>
                     )}
                   </Button>
