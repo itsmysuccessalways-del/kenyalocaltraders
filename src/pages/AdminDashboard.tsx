@@ -572,7 +572,7 @@ const AdminDashboard = () => {
                               </Button>
                             </div>
                           )}
-                          {w.status === "approved" && (
+                          {(w.status === "approved" || w.status === "processing") && (
                             <Button
                               variant="outline"
                               size="sm"
