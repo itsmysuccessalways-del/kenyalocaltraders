@@ -538,7 +538,7 @@ const AdminDashboard = () => {
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
                             <p className="text-sm font-bold text-foreground">
-                              KSH {Number(w.amount_kes).toLocaleString()}
+                              ${Number(w.amount_usd).toFixed(2)} <span className="text-[10px] text-muted-foreground font-normal">(KSH {Number(w.amount_kes).toLocaleString()})</span>
                             </p>
                             <p className="text-[10px] text-muted-foreground">
                               {new Date(w.created_at).toLocaleDateString()}
