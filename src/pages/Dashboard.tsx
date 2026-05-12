@@ -587,7 +587,7 @@ const Dashboard = () => {
                     <p className="font-medium text-foreground text-sm mb-1">
                       Available: ${availableBalanceUsd.toFixed(2)} <span className="text-muted-foreground">(≈ KSH {availableBalance.toLocaleString()})</span>
                     </p>
-                    <p>• Withdraw profits to your PayPal account</p>
+                    <p>• Sent to your M-Pesa number</p>
                     <p>• Admin approval required</p>
                   </div>
                   {availableBalance <= 0 ? (
@@ -620,20 +620,20 @@ const Dashboard = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="wEmail" className="text-xs">PayPal Email</Label>
+                        <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
                         <Input
-                          id="wEmail"
-                          type="email"
-                          placeholder="you@paypal.com"
-                          value={withdrawPaypalEmail}
-                          onChange={(e) => setWithdrawPaypalEmail(e.target.value)}
+                          id="wPhone"
+                          type="tel"
+                          placeholder="07XX XXX XXX"
+                          value={withdrawMpesaPhone}
+                          onChange={(e) => setWithdrawMpesaPhone(e.target.value)}
                           className="bg-secondary border-border"
                         />
                       </div>
                       <Button
                         className="w-full"
                         onClick={handleWithdraw}
-                        disabled={withdrawLoading || !withdrawAmount || !withdrawPaypalEmail}
+                        disabled={withdrawLoading || !withdrawAmount || !withdrawMpesaPhone}
                       >
                         {withdrawLoading ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
