@@ -1,1 +1,4 @@
 project_id = "deurylywogvzxgpbunqi"
+
+[functions.onasis-webhook]
+verify_jwt = false
