@@ -51,9 +51,13 @@ const Dashboard = () => {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [depositAmount, setDepositAmount] = useState(""); // USD
+  const [depositPhone, setDepositPhone] = useState("");
   const [depositLoading, setDepositLoading] = useState(false);
+  const [depositStage, setDepositStage] = useState<"idle" | "prompting" | "success" | "failed">("idle");
+  const [depositStatusMsg, setDepositStatusMsg] = useState("");
+  const depositPollRef = useRef<number | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState(""); // USD
-  const [withdrawPaypalEmail, setWithdrawPaypalEmail] = useState("");
+  const [withdrawMpesaPhone, setWithdrawMpesaPhone] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
   const applyingRef = useRef<Set<string>>(new Set());
