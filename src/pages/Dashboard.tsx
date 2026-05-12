@@ -158,27 +158,55 @@ const Dashboard = () => {
     navigate("/login");
   };
 
+  const startDepositPoll = useCallback((reference: string) => {
+    const started = Date.now();
+    depositPollRef.current = window.setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("onasis-status", { body: { reference } });
+        if (data?.status === "completed") {
+          window.clearInterval(depositPollRef.current!);
+          setDepositStage("success");
+          setDepositStatusMsg("Payment received! Your deposit is now active.");
+          toast.success("Payment confirmed");
+          setDepositAmount("");
+          setDepositPhone("");
+        } else if (data?.status === "failed") {
+          window.clearInterval(depositPollRef.current!);
+          setDepositStage("failed");
+          setDepositStatusMsg("Payment failed or was cancelled.");
+        } else if (Date.now() - started > 120_000) {
+          window.clearInterval(depositPollRef.current!);
+          setDepositStage("idle");
+          setDepositStatusMsg("Still waiting — your deposit will appear once confirmed.");
+        }
+      } catch { /* transient */ }
+    }, 4000) as unknown as number;
+  }, []);
+
   const handleDeposit = async () => {
     const usd = parseFloat(depositAmount);
     if (!usd || usd < 0.1 || usd > 200) {
       toast.error("Amount must be between $0.1 and $200");
       return;
     }
+    if (!depositPhone.trim()) {
+      toast.error("Enter your M-Pesa phone number");
+      return;
+    }
     setDepositLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) { toast.error("Please log in first"); navigate("/login"); return; }
-      const { data, error } = await supabase.functions.invoke("paypal-create-order", {
-        body: {
-          amount_usd: usd,
-          return_url: `${window.location.origin}/deposit/callback`,
-          cancel_url: `${window.location.origin}/dashboard`,
-        },
+      const { data, error } = await supabase.functions.invoke("onasis-stk-push", {
+        body: { amount_usd: usd, phone: depositPhone.trim() },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.approval_url) { window.location.href = data.approval_url; }
-      else { throw new Error("No approval URL received"); }
+      if (!data?.reference) throw new Error("No reference returned");
+      setDepositStage("prompting");
+      setDepositStatusMsg("Check your phone — enter your M-Pesa PIN to complete the payment.");
+      toast.success("STK push sent");
+      startDepositPoll(data.reference);
     } catch (err: unknown) {
       console.error("Deposit error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to initiate deposit");
@@ -202,8 +230,8 @@ const Dashboard = () => {
       toast.error(`Insufficient balance. Available: $${availableUsd.toFixed(2)}`);
       return;
     }
-    if (!withdrawPaypalEmail.trim() || !/^\S+@\S+\.\S+$/.test(withdrawPaypalEmail.trim())) {
-      toast.error("Enter a valid PayPal email address");
+    if (!withdrawMpesaPhone.trim()) {
+      toast.error("Enter your M-Pesa phone number");
       return;
     }
     setWithdrawLoading(true);
@@ -216,14 +244,14 @@ const Dashboard = () => {
         user_id: sessionData.session.user.id,
         amount_usd: usd,
         amount_kes: amountKes,
-        paypal_email: withdrawPaypalEmail.trim(),
+        mpesa_phone: withdrawMpesaPhone.trim(),
         status: "pending",
       });
 
       if (error) throw error;
       toast.success("Withdrawal request submitted! Awaiting admin approval.");
       setWithdrawAmount("");
-      setWithdrawPaypalEmail("");
+      setWithdrawMpesaPhone("");
 
       const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
       if (data) setWithdrawals(data);
