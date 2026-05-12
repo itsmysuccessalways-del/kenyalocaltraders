@@ -51,9 +51,13 @@ const Dashboard = () => {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [depositAmount, setDepositAmount] = useState(""); // USD
+  const [depositPhone, setDepositPhone] = useState("");
   const [depositLoading, setDepositLoading] = useState(false);
+  const [depositStage, setDepositStage] = useState<"idle" | "prompting" | "success" | "failed">("idle");
+  const [depositStatusMsg, setDepositStatusMsg] = useState("");
+  const depositPollRef = useRef<number | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState(""); // USD
-  const [withdrawPaypalEmail, setWithdrawPaypalEmail] = useState("");
+  const [withdrawMpesaPhone, setWithdrawMpesaPhone] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [now, setNow] = useState(Date.now());
   const applyingRef = useRef<Set<string>>(new Set());
@@ -154,27 +158,55 @@ const Dashboard = () => {
     navigate("/login");
   };
 
+  const startDepositPoll = useCallback((reference: string) => {
+    const started = Date.now();
+    depositPollRef.current = window.setInterval(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("onasis-status", { body: { reference } });
+        if (data?.status === "completed") {
+          window.clearInterval(depositPollRef.current!);
+          setDepositStage("success");
+          setDepositStatusMsg("Payment received! Your deposit is now active.");
+          toast.success("Payment confirmed");
+          setDepositAmount("");
+          setDepositPhone("");
+        } else if (data?.status === "failed") {
+          window.clearInterval(depositPollRef.current!);
+          setDepositStage("failed");
+          setDepositStatusMsg("Payment failed or was cancelled.");
+        } else if (Date.now() - started > 120_000) {
+          window.clearInterval(depositPollRef.current!);
+          setDepositStage("idle");
+          setDepositStatusMsg("Still waiting — your deposit will appear once confirmed.");
+        }
+      } catch { /* transient */ }
+    }, 4000) as unknown as number;
+  }, []);
+
   const handleDeposit = async () => {
     const usd = parseFloat(depositAmount);
     if (!usd || usd < 0.1 || usd > 200) {
       toast.error("Amount must be between $0.1 and $200");
       return;
     }
+    if (!depositPhone.trim()) {
+      toast.error("Enter your M-Pesa phone number");
+      return;
+    }
     setDepositLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) { toast.error("Please log in first"); navigate("/login"); return; }
-      const { data, error } = await supabase.functions.invoke("paypal-create-order", {
-        body: {
-          amount_usd: usd,
-          return_url: `${window.location.origin}/deposit/callback`,
-          cancel_url: `${window.location.origin}/dashboard`,
-        },
+      const { data, error } = await supabase.functions.invoke("onasis-stk-push", {
+        body: { amount_usd: usd, phone: depositPhone.trim() },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.approval_url) { window.location.href = data.approval_url; }
-      else { throw new Error("No approval URL received"); }
+      if (!data?.reference) throw new Error("No reference returned");
+      setDepositStage("prompting");
+      setDepositStatusMsg("Check your phone — enter your M-Pesa PIN to complete the payment.");
+      toast.success("STK push sent");
+      startDepositPoll(data.reference);
     } catch (err: unknown) {
       console.error("Deposit error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to initiate deposit");
@@ -198,8 +230,8 @@ const Dashboard = () => {
       toast.error(`Insufficient balance. Available: $${availableUsd.toFixed(2)}`);
       return;
     }
-    if (!withdrawPaypalEmail.trim() || !/^\S+@\S+\.\S+$/.test(withdrawPaypalEmail.trim())) {
-      toast.error("Enter a valid PayPal email address");
+    if (!withdrawMpesaPhone.trim()) {
+      toast.error("Enter your M-Pesa phone number");
       return;
     }
     setWithdrawLoading(true);
@@ -212,14 +244,14 @@ const Dashboard = () => {
         user_id: sessionData.session.user.id,
         amount_usd: usd,
         amount_kes: amountKes,
-        paypal_email: withdrawPaypalEmail.trim(),
+        mpesa_phone: withdrawMpesaPhone.trim(),
         status: "pending",
       });
 
       if (error) throw error;
       toast.success("Withdrawal request submitted! Awaiting admin approval.");
       setWithdrawAmount("");
-      setWithdrawPaypalEmail("");
+      setWithdrawMpesaPhone("");
 
       const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
       if (data) setWithdrawals(data);
@@ -468,45 +500,77 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="depositAmount" className="text-xs">Amount (USD)</Label>
-                    <Input
-                      id="depositAmount"
-                      type="number"
-                      min="0.1"
-                      max="200"
-                      step="0.01"
-                      placeholder="$0.1 - $200"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                    {depositAmount && parseFloat(depositAmount) >= 0.1 && (
-                      <p className="text-[11px] text-primary mt-1">
-                        ≈ KSH {(parseFloat(depositAmount) * 150).toLocaleString()} • You'll receive <span className="font-bold">+${(parseFloat(depositAmount) * 0.5).toFixed(2)}</span> profit after 30 min
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                    <p>• Min deposit: $0.1</p>
-                    <p>• Max deposit: $200</p>
-                    <p>• Secure payment via PayPal (card or PayPal balance)</p>
-                    <p className="text-primary font-medium">• 50% profit credited after 30 minutes</p>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={handleDeposit}
-                    disabled={depositLoading || !depositAmount}
-                  >
-                    {depositLoading ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to PayPal...</>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Pay ${depositAmount || "0.00"} with PayPal
-                      </>
-                    )}
-                  </Button>
+                  {depositStage === "prompting" ? (
+                    <div className="text-center py-6 space-y-2">
+                      <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
+                      <p className="text-sm font-semibold text-foreground">Awaiting confirmation</p>
+                      <p className="text-[11px] text-muted-foreground">{depositStatusMsg}</p>
+                    </div>
+                  ) : depositStage === "success" ? (
+                    <div className="text-center py-6 space-y-2">
+                      <Zap className="w-10 h-10 mx-auto text-primary" />
+                      <p className="text-sm font-semibold text-foreground">Payment confirmed</p>
+                      <p className="text-[11px] text-muted-foreground">{depositStatusMsg}</p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={() => setDepositStage("idle")}>Make another deposit</Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <Label htmlFor="depositAmount" className="text-xs">Amount (USD)</Label>
+                        <Input
+                          id="depositAmount"
+                          type="number"
+                          min="0.1"
+                          max="200"
+                          step="0.01"
+                          placeholder="$0.1 - $200"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                        {depositAmount && parseFloat(depositAmount) >= 0.1 && (
+                          <p className="text-[11px] text-primary mt-1">
+                            ≈ KSH {(parseFloat(depositAmount) * 150).toLocaleString()} • You'll receive <span className="font-bold">+${(parseFloat(depositAmount) * 0.5).toFixed(2)}</span> profit after 30 min
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="depositPhone" className="text-xs">M-Pesa Phone Number</Label>
+                        <Input
+                          id="depositPhone"
+                          type="tel"
+                          placeholder="07XX XXX XXX"
+                          value={depositPhone}
+                          onChange={(e) => setDepositPhone(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                      <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                        <p>• Min deposit: $0.1 • Max: $200</p>
+                        <p>• Pay instantly via M-Pesa STK push</p>
+                        <p className="text-primary font-medium">• 50% profit credited after 30 minutes</p>
+                      </div>
+                      {depositStage === "failed" && (
+                        <div className="rounded-lg p-2.5 text-[11px] bg-destructive/10 border border-destructive/20 text-destructive">
+                          {depositStatusMsg}
+                        </div>
+                      )}
+                      <Button
+                        className="w-full"
+                        onClick={handleDeposit}
+                        disabled={depositLoading || !depositAmount || !depositPhone}
+                      >
+                        {depositLoading ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending STK push...</>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            Pay ${depositAmount || "0.00"} via M-Pesa
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -523,7 +587,7 @@ const Dashboard = () => {
                     <p className="font-medium text-foreground text-sm mb-1">
                       Available: ${availableBalanceUsd.toFixed(2)} <span className="text-muted-foreground">(≈ KSH {availableBalance.toLocaleString()})</span>
                     </p>
-                    <p>• Withdraw profits to your PayPal account</p>
+                    <p>• Sent to your M-Pesa number</p>
                     <p>• Admin approval required</p>
                   </div>
                   {availableBalance <= 0 ? (
@@ -556,20 +620,20 @@ const Dashboard = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="wEmail" className="text-xs">PayPal Email</Label>
+                        <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
                         <Input
-                          id="wEmail"
-                          type="email"
-                          placeholder="you@paypal.com"
-                          value={withdrawPaypalEmail}
-                          onChange={(e) => setWithdrawPaypalEmail(e.target.value)}
+                          id="wPhone"
+                          type="tel"
+                          placeholder="07XX XXX XXX"
+                          value={withdrawMpesaPhone}
+                          onChange={(e) => setWithdrawMpesaPhone(e.target.value)}
                           className="bg-secondary border-border"
                         />
                       </div>
                       <Button
                         className="w-full"
                         onClick={handleWithdraw}
-                        disabled={withdrawLoading || !withdrawAmount || !withdrawPaypalEmail}
+                        disabled={withdrawLoading || !withdrawAmount || !withdrawMpesaPhone}
                       >
                         {withdrawLoading ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>

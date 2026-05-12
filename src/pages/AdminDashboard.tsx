@@ -58,6 +58,7 @@ interface Withdrawal {
   amount_usd: number;
   amount_kes: number;
   phone_number: string | null;
+  mpesa_phone: string | null;
   paypal_email: string | null;
   paypal_payout_batch_id: string | null;
   status: string;
@@ -203,22 +204,18 @@ const AdminDashboard = () => {
         );
         toast.success("Withdrawal rejected");
       } else {
-        // Approve = trigger PayPal payout
-        const { data, error } = await supabase.functions.invoke("paypal-payout", {
-          body: { withdrawal_id: withdrawalId },
-        });
+        // Approve = mark for manual M-Pesa send-money by admin
+        const { error } = await supabase
+          .from("withdrawals")
+          .update({ status: "approved", admin_notes: adminNotes || null })
+          .eq("id", withdrawalId);
         if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        if (adminNotes) {
-          await supabase.from("withdrawals").update({ admin_notes: adminNotes }).eq("id", withdrawalId);
-        }
         setWithdrawals((prev) =>
           prev.map((w) => w.id === withdrawalId
-            ? { ...w, status: "processing", paypal_payout_batch_id: data?.batch_id ?? null, admin_notes: adminNotes || w.admin_notes }
+            ? { ...w, status: "approved", admin_notes: adminNotes || w.admin_notes }
             : w)
         );
-        toast.success("PayPal payout sent! Mark completed once funds clear.");
+        toast.success("Approved. Send the M-Pesa payment manually, then mark completed.");
       }
       setAdminNotes("");
     } catch (err: unknown) {
@@ -521,7 +518,7 @@ const AdminDashboard = () => {
                               {getNameForUser(w.user_id)}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
-                              {getEmailForUser(w.user_id)} • {w.paypal_email || w.phone_number || "—"}
+                              {getEmailForUser(w.user_id)} • {w.mpesa_phone || w.paypal_email || w.phone_number || "—"}
                             </p>
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
