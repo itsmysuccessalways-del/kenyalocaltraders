@@ -58,6 +58,7 @@ interface Withdrawal {
   amount_usd: number;
   amount_kes: number;
   phone_number: string | null;
+  mpesa_phone: string | null;
   paypal_email: string | null;
   paypal_payout_batch_id: string | null;
   status: string;
