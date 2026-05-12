@@ -203,22 +203,18 @@ const AdminDashboard = () => {
         );
         toast.success("Withdrawal rejected");
       } else {
-        // Approve = trigger PayPal payout
-        const { data, error } = await supabase.functions.invoke("paypal-payout", {
-          body: { withdrawal_id: withdrawalId },
-        });
+        // Approve = mark for manual M-Pesa send-money by admin
+        const { error } = await supabase
+          .from("withdrawals")
+          .update({ status: "approved", admin_notes: adminNotes || null })
+          .eq("id", withdrawalId);
         if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        if (adminNotes) {
-          await supabase.from("withdrawals").update({ admin_notes: adminNotes }).eq("id", withdrawalId);
-        }
         setWithdrawals((prev) =>
           prev.map((w) => w.id === withdrawalId
-            ? { ...w, status: "processing", paypal_payout_batch_id: data?.batch_id ?? null, admin_notes: adminNotes || w.admin_notes }
+            ? { ...w, status: "approved", admin_notes: adminNotes || w.admin_notes }
             : w)
         );
-        toast.success("PayPal payout sent! Mark completed once funds clear.");
+        toast.success("Approved. Send the M-Pesa payment manually, then mark completed.");
       }
       setAdminNotes("");
     } catch (err: unknown) {
