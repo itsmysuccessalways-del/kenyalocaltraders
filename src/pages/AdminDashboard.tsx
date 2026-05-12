@@ -517,7 +517,7 @@ const AdminDashboard = () => {
                               {getNameForUser(w.user_id)}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
-                              {getEmailForUser(w.user_id)} • {w.paypal_email || w.phone_number || "—"}
+                              {getEmailForUser(w.user_id)} • {w.mpesa_phone || w.paypal_email || w.phone_number || "—"}
                             </p>
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-2 ${
