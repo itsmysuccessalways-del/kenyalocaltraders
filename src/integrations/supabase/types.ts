@@ -20,6 +20,10 @@ export type Database = {
           amount_usd: number
           created_at: string
           id: string
+          mpesa_phone: string | null
+          mpesa_receipt: string | null
+          onasis_reference: string | null
+          onasis_transaction_id: string | null
           payment_method: string | null
           paypal_capture_id: string | null
           paypal_order_id: string | null
@@ -35,6 +39,10 @@ export type Database = {
           amount_usd: number
           created_at?: string
           id?: string
+          mpesa_phone?: string | null
+          mpesa_receipt?: string | null
+          onasis_reference?: string | null
+          onasis_transaction_id?: string | null
           payment_method?: string | null
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
@@ -50,6 +58,10 @@ export type Database = {
           amount_usd?: number
           created_at?: string
           id?: string
+          mpesa_phone?: string | null
+          mpesa_receipt?: string | null
+          onasis_reference?: string | null
+          onasis_transaction_id?: string | null
           payment_method?: string | null
           paypal_capture_id?: string | null
           paypal_order_id?: string | null
@@ -117,6 +129,7 @@ export type Database = {
           amount_usd: number
           created_at: string
           id: string
+          mpesa_phone: string | null
           paypal_email: string | null
           paypal_payout_batch_id: string | null
           paypal_payout_item_id: string | null
@@ -132,6 +145,7 @@ export type Database = {
           amount_usd: number
           created_at?: string
           id?: string
+          mpesa_phone?: string | null
           paypal_email?: string | null
           paypal_payout_batch_id?: string | null
           paypal_payout_item_id?: string | null
@@ -147,6 +161,7 @@ export type Database = {
           amount_usd?: number
           created_at?: string
           id?: string
+          mpesa_phone?: string | null
           paypal_email?: string | null
           paypal_payout_batch_id?: string | null
           paypal_payout_item_id?: string | null
