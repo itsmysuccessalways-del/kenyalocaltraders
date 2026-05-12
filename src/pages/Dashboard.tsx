@@ -500,45 +500,77 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="depositAmount" className="text-xs">Amount (USD)</Label>
-                    <Input
-                      id="depositAmount"
-                      type="number"
-                      min="0.1"
-                      max="200"
-                      step="0.01"
-                      placeholder="$0.1 - $200"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                    {depositAmount && parseFloat(depositAmount) >= 0.1 && (
-                      <p className="text-[11px] text-primary mt-1">
-                        ≈ KSH {(parseFloat(depositAmount) * 150).toLocaleString()} • You'll receive <span className="font-bold">+${(parseFloat(depositAmount) * 0.5).toFixed(2)}</span> profit after 30 min
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                    <p>• Min deposit: $0.1</p>
-                    <p>• Max deposit: $200</p>
-                    <p>• Secure payment via PayPal (card or PayPal balance)</p>
-                    <p className="text-primary font-medium">• 50% profit credited after 30 minutes</p>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={handleDeposit}
-                    disabled={depositLoading || !depositAmount}
-                  >
-                    {depositLoading ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Redirecting to PayPal...</>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Pay ${depositAmount || "0.00"} with PayPal
-                      </>
-                    )}
-                  </Button>
+                  {depositStage === "prompting" ? (
+                    <div className="text-center py-6 space-y-2">
+                      <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
+                      <p className="text-sm font-semibold text-foreground">Awaiting confirmation</p>
+                      <p className="text-[11px] text-muted-foreground">{depositStatusMsg}</p>
+                    </div>
+                  ) : depositStage === "success" ? (
+                    <div className="text-center py-6 space-y-2">
+                      <Zap className="w-10 h-10 mx-auto text-primary" />
+                      <p className="text-sm font-semibold text-foreground">Payment confirmed</p>
+                      <p className="text-[11px] text-muted-foreground">{depositStatusMsg}</p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={() => setDepositStage("idle")}>Make another deposit</Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <Label htmlFor="depositAmount" className="text-xs">Amount (USD)</Label>
+                        <Input
+                          id="depositAmount"
+                          type="number"
+                          min="0.1"
+                          max="200"
+                          step="0.01"
+                          placeholder="$0.1 - $200"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                        {depositAmount && parseFloat(depositAmount) >= 0.1 && (
+                          <p className="text-[11px] text-primary mt-1">
+                            ≈ KSH {(parseFloat(depositAmount) * 150).toLocaleString()} • You'll receive <span className="font-bold">+${(parseFloat(depositAmount) * 0.5).toFixed(2)}</span> profit after 30 min
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="depositPhone" className="text-xs">M-Pesa Phone Number</Label>
+                        <Input
+                          id="depositPhone"
+                          type="tel"
+                          placeholder="07XX XXX XXX"
+                          value={depositPhone}
+                          onChange={(e) => setDepositPhone(e.target.value)}
+                          className="bg-secondary border-border"
+                        />
+                      </div>
+                      <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                        <p>• Min deposit: $0.1 • Max: $200</p>
+                        <p>• Pay instantly via M-Pesa STK push</p>
+                        <p className="text-primary font-medium">• 50% profit credited after 30 minutes</p>
+                      </div>
+                      {depositStage === "failed" && (
+                        <div className="rounded-lg p-2.5 text-[11px] bg-destructive/10 border border-destructive/20 text-destructive">
+                          {depositStatusMsg}
+                        </div>
+                      )}
+                      <Button
+                        className="w-full"
+                        onClick={handleDeposit}
+                        disabled={depositLoading || !depositAmount || !depositPhone}
+                      >
+                        {depositLoading ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending STK push...</>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            Pay ${depositAmount || "0.00"} via M-Pesa
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
