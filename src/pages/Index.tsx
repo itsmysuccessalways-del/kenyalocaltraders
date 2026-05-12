@@ -80,7 +80,7 @@ const Index = () => {
           <p className="text-center text-muted-foreground mb-12">Simple 4-step process to start earning from forex trading</p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Wallet, title: "Deposit Funds", desc: "Add funds securely via PayPal (card or PayPal balance). Min $0.1, max $200.", color: "text-primary" },
+              { icon: Wallet, title: "Deposit Funds", desc: "Add funds instantly via M-Pesa STK push. Min $0.1, max $200.", color: "text-primary" },
               { icon: BarChart3, title: "We Trade for You", desc: "Your deposit is pooled and traded using our proven strategy.", color: "text-gold" },
               { icon: DollarSign, title: "Profit Sharing", desc: "Profits calculated after 24 hours and shared automatically. 10% commission.", color: "text-primary" },
               { icon: Shield, title: "Loss Protection", desc: "Initial deposits are refunded in the unlikely event of a loss.", color: "text-gold" },
