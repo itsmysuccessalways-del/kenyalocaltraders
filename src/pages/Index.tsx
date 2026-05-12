@@ -170,7 +170,7 @@ const Index = () => {
               { q: "What happens if a trade loses?", a: "Your initial deposit is fully refunded in the unlikely event of a trading loss. We absorb all losses to protect your investment." },
               { q: "What are the deposit limits?", a: "Minimum deposit is $0.1 (~KSH 15) and maximum deposit is $200 (~KSH 30,000) per transaction." },
               { q: "How much commission do you charge?", a: "We charge a 10% commission on profits only. If there's no profit, there's no commission. Your deposits are never touched." },
-              { q: "How do I withdraw my money?", a: "You can request a withdrawal anytime after profit distribution. Funds are sent directly to your PayPal email, usually within 24 hours of admin approval." },
+              { q: "How do I withdraw my money?", a: "You can request a withdrawal anytime after profit distribution. Funds are sent directly to your M-Pesa number, usually within 24 hours of admin approval." },
             ].map((faq, i) => (
               <AccordionItem key={i} value={`item-${i}`}>
                 <AccordionTrigger>{faq.q}</AccordionTrigger>
