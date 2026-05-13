@@ -14,7 +14,7 @@ import {
   Users, DollarSign, TrendingUp, Clock, Search,
   LogOut, Shield, Loader2, Edit, Activity,
   UserCheck, CreditCard, ArrowUpRight, ArrowDownLeft,
-  Check, X, CheckCircle2, Phone,
+  Check, X, CheckCircle2, Phone, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -81,6 +81,9 @@ const AdminDashboard = () => {
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
   const [completingWithdrawal, setCompletingWithdrawal] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
+  const [newBalanceValue, setNewBalanceValue] = useState("");
+  const [savingBalance, setSavingBalance] = useState(false);
 
   useEffect(() => {
     const init = async () => {
