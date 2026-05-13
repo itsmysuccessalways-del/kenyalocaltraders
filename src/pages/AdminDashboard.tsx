@@ -260,6 +260,51 @@ const AdminDashboard = () => {
     return p?.phone || "No phone";
   };
 
+  const getBalanceUsdForUser = (userId: string) => {
+    const credits = deposits
+      .filter((d) => d.user_id === userId && d.status === "completed")
+      .reduce((sum, d) => sum + Number(d.amount_usd) + Number(d.profit_amount || 0), 0);
+    const debits = withdrawals
+      .filter((w) => w.user_id === userId && ["approved", "completed", "processing"].includes(w.status))
+      .reduce((sum, w) => sum + Number(w.amount_usd), 0);
+    return credits - debits;
+  };
+
+  const handleSaveBalance = async () => {
+    if (!adjustingUserId) return;
+    const target = parseFloat(newBalanceValue);
+    if (isNaN(target)) { toast.error("Enter a valid USD amount"); return; }
+    const current = getBalanceUsdForUser(adjustingUserId);
+    const delta = target - current;
+    if (Math.abs(delta) < 0.01) { toast.info("Balance unchanged"); setAdjustingUserId(null); return; }
+
+    setSavingBalance(true);
+    try {
+      const { data, error } = await supabase
+        .from("deposits")
+        .insert({
+          user_id: adjustingUserId,
+          amount_usd: 0,
+          amount_kes: 0,
+          status: "completed",
+          profit_amount: delta,
+          profit_applied: true,
+          payment_method: "admin_adjustment",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setDeposits((prev) => [data as Deposit, ...prev]);
+      toast.success(`Balance set to $${target.toFixed(2)}`);
+      setAdjustingUserId(null);
+      setNewBalanceValue("");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to adjust balance");
+    } finally {
+      setSavingBalance(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
