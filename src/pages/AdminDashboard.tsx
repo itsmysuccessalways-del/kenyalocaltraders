@@ -447,10 +447,22 @@ const AdminDashboard = () => {
                                 <p className="text-[11px] font-medium text-primary">{p.phone || "No phone"}</p>
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-[10px] text-muted-foreground">
-                                {new Date(p.created_at).toLocaleDateString()}
-                              </p>
+                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                              <div>
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Balance</p>
+                                <p className="text-sm font-bold text-primary">${getBalanceUsdForUser(p.user_id).toFixed(2)}</p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] border-[hsl(280,70%,55%)] text-[hsl(280,70%,65%)] hover:bg-[hsl(280,70%,55%)] hover:text-primary-foreground"
+                                onClick={() => {
+                                  setAdjustingUserId(p.user_id);
+                                  setNewBalanceValue(getBalanceUsdForUser(p.user_id).toFixed(2));
+                                }}
+                              >
+                                <Wallet className="w-3 h-3 mr-1" /> Edit
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
