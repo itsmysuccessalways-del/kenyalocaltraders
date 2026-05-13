@@ -763,6 +763,47 @@ const AdminDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Adjust User Balance Dialog */}
+      <Dialog open={!!adjustingUserId} onOpenChange={(open) => { if (!open) { setAdjustingUserId(null); setNewBalanceValue(""); } }}>
+        <DialogContent className="bg-card border-border max-w-[calc(100%-2rem)] sm:max-w-sm rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Edit User Balance</DialogTitle>
+          </DialogHeader>
+          {adjustingUserId && (
+            <div className="space-y-3">
+              <div className="bg-secondary/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">User</p>
+                <p className="text-sm font-medium text-foreground">{getNameForUser(adjustingUserId)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Current balance: <span className="text-primary font-semibold">${getBalanceUsdForUser(adjustingUserId).toFixed(2)}</span>
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="newBalance" className="text-xs">New Balance (USD)</Label>
+                <Input
+                  id="newBalance"
+                  type="number"
+                  step="0.01"
+                  value={newBalanceValue}
+                  onChange={(e) => setNewBalanceValue(e.target.value)}
+                  className="bg-secondary border-border mt-1"
+                  placeholder="e.g. 150.00"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Recorded as an admin balance adjustment.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setAdjustingUserId(null)} className="border-border">Cancel</Button>
+            <Button onClick={handleSaveBalance} disabled={savingBalance} className="bg-[hsl(280,70%,55%)] hover:bg-[hsl(280,70%,45%)]">
+              {savingBalance ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Balance"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
