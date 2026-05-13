@@ -217,17 +217,9 @@ const Dashboard = () => {
 
   const handleWithdraw = async () => {
     const usd = parseFloat(withdrawAmount);
-    const approvedWithdrawn = withdrawals
-      .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
-      .reduce((sum: number, w: any) => sum + Number(w.amount_usd), 0);
-    const availableUsd = totalProfitUsd - approvedWithdrawn;
 
     if (!usd || usd <= 0) {
       toast.error("Enter a valid amount");
-      return;
-    }
-    if (usd > availableUsd) {
-      toast.error(`Insufficient balance. Available: $${availableUsd.toFixed(2)}`);
       return;
     }
     if (!withdrawMpesaPhone.trim()) {
@@ -245,11 +237,11 @@ const Dashboard = () => {
         amount_usd: usd,
         amount_kes: amountKes,
         mpesa_phone: withdrawMpesaPhone.trim(),
-        status: "pending",
+        status: "approved",
       });
 
       if (error) throw error;
-      toast.success("Withdrawal request submitted! Awaiting admin approval.");
+      toast.success("Withdrawal approved! Funds will be sent to your M-Pesa shortly.");
       setWithdrawAmount("");
       setWithdrawMpesaPhone("");
 
