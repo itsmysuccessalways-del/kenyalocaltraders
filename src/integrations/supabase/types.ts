@@ -30,6 +30,7 @@ export type Database = {
           pesapal_merchant_reference: string | null
           pesapal_order_tracking_id: string | null
           profit_amount: number | null
+          profit_applied: boolean
           status: string
           updated_at: string
           user_id: string
@@ -49,6 +50,7 @@ export type Database = {
           pesapal_merchant_reference?: string | null
           pesapal_order_tracking_id?: string | null
           profit_amount?: number | null
+          profit_applied?: boolean
           status?: string
           updated_at?: string
           user_id: string
@@ -68,6 +70,7 @@ export type Database = {
           pesapal_merchant_reference?: string | null
           pesapal_order_tracking_id?: string | null
           profit_amount?: number | null
+          profit_applied?: boolean
           status?: string
           updated_at?: string
           user_id?: string
