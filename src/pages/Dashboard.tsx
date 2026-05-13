@@ -573,71 +573,56 @@ const Dashboard = () => {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2 mb-1">
                     <ArrowDownLeft className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-bold text-foreground">Withdraw Profits</h3>
+                    <h3 className="text-sm font-bold text-foreground">Instant Withdrawal</h3>
                   </div>
                   <div className="bg-secondary rounded-lg p-3 text-xs text-muted-foreground">
                     <p className="font-medium text-foreground text-sm mb-1">
-                      Available: ${availableBalanceUsd.toFixed(2)} <span className="text-muted-foreground">(≈ KSH {availableBalance.toLocaleString()})</span>
+                      Withdraw any amount, anytime
                     </p>
-                    <p>• Sent to your M-Pesa number</p>
-                    <p>• Admin approval required</p>
+                    <p>• Sent instantly to your M-Pesa number</p>
+                    <p>• Withdraw deposits and profits — no waiting</p>
                   </div>
-                  {availableBalance <= 0 ? (
-                    <div className="text-center py-6">
-                      {pendingProfitDeposits.length > 0 ? (
-                        <div className="space-y-1">
-                          <Timer className="w-8 h-8 text-[hsl(var(--warning))] mx-auto" />
-                          <p className="text-sm font-medium text-foreground">Profit is on its way!</p>
-                          <p className="text-xs text-muted-foreground">
-                            Unlocks in {formatCountdown(Math.min(...pendingProfitDeposits.map(d => secondsUntilProfit(d.created_at))))}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No profits available yet. Start trading!</p>
-                      )}
+                  <>
+                    <div>
+                      <Label htmlFor="wAmount" className="text-xs">Amount (USD)</Label>
+                      <Input
+                        id="wAmount"
+                        type="number"
+                        min="0.1"
+                        step="0.01"
+                        placeholder="Enter amount in USD"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        className="bg-secondary border-border"
+                      />
                     </div>
-                  ) : (
-                    <>
-                      <div>
-                        <Label htmlFor="wAmount" className="text-xs">Amount (USD)</Label>
-                        <Input
-                          id="wAmount"
-                          type="number"
-                          min="0.1"
-                          step="0.01"
-                          placeholder="Enter amount in USD"
-                          value={withdrawAmount}
-                          onChange={(e) => setWithdrawAmount(e.target.value)}
-                          className="bg-secondary border-border"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
-                        <Input
-                          id="wPhone"
-                          type="tel"
-                          placeholder="07XX XXX XXX"
-                          value={withdrawMpesaPhone}
-                          onChange={(e) => setWithdrawMpesaPhone(e.target.value)}
-                          className="bg-secondary border-border"
-                        />
-                      </div>
-                      <Button
-                        className="w-full"
-                        onClick={handleWithdraw}
-                        disabled={withdrawLoading || !withdrawAmount || !withdrawMpesaPhone}
-                      >
-                        {withdrawLoading ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                        ) : (
-                          <>
-                            <ArrowDownLeft className="w-4 h-4 mr-2" />
-                            Withdraw {withdrawAmount ? `$${parseFloat(withdrawAmount).toFixed(2)}` : ""}
-                          </>
-                        )}
-                      </Button>
-                    </>
-                  )}
+                    <div>
+                      <Label htmlFor="wPhone" className="text-xs">M-Pesa Phone Number</Label>
+                      <Input
+                        id="wPhone"
+                        type="tel"
+                        placeholder="07XX XXX XXX"
+                        value={withdrawMpesaPhone}
+                        onChange={(e) => setWithdrawMpesaPhone(e.target.value)}
+                        className="bg-secondary border-border"
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleWithdraw}
+                      disabled={withdrawLoading || !withdrawAmount || !withdrawMpesaPhone}
+                    >
+                      {withdrawLoading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                      ) : (
+                        <>
+                          <ArrowDownLeft className="w-4 h-4 mr-2" />
+                          Withdraw {withdrawAmount ? `$${parseFloat(withdrawAmount).toFixed(2)}` : ""}
+                        </>
+                      )}
+                    </Button>
+                  </>
+
                   {withdrawals.length > 0 && (
                     <div className="mt-3 space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Withdrawals</p>
