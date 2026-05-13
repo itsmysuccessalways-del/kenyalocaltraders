@@ -1,50 +1,45 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 
-Deno.serve(async (req) => {
+// Apply a one-time 50% profit bump to each completed deposit, 30 minutes after it was created.
+// Runs frequently (cron) but only acts on deposits that have not yet received the bump.
+Deno.serve(async () => {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
-    // Get all completed deposits
-    const { data: deposits, error: fetchError } = await supabase
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    const { data: deposits, error } = await supabase
       .from("deposits")
-      .select("id, amount_usd, profit_amount")
-      .eq("status", "completed");
+      .select("id, amount_usd")
+      .eq("status", "completed")
+      .eq("profit_applied", false)
+      .lte("created_at", cutoff);
 
-    if (fetchError) {
-      throw fetchError;
-    }
-
+    if (error) throw error;
     if (!deposits || deposits.length === 0) {
-      return new Response(JSON.stringify({ message: "No completed deposits found" }), {
-        status: 200,
+      return new Response(JSON.stringify({ message: "No deposits eligible", updated: 0 }), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Update each deposit: add 50% of deposit amount to profit
-    let updatedCount = 0;
-    for (const deposit of deposits) {
-      const profitIncrease = deposit.amount_usd * 0.5;
-      const newProfit = (deposit.profit_amount || 0) + profitIncrease;
-
-      const { error: updateError } = await supabase
+    let updated = 0;
+    for (const d of deposits) {
+      const profit = Number(d.amount_usd) * 0.5;
+      const { error: uErr } = await supabase
         .from("deposits")
-        .update({ profit_amount: newProfit })
-        .eq("id", deposit.id);
-
-      if (!updateError) {
-        updatedCount++;
-      }
+        .update({ profit_amount: profit, profit_applied: true })
+        .eq("id", d.id);
+      if (!uErr) updated++;
     }
 
-    return new Response(
-      JSON.stringify({ message: `Updated ${updatedCount} deposits`, updatedCount }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ message: `Applied ${updated} profit bumps`, updated }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

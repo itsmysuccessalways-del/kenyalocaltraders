@@ -14,7 +14,7 @@ import {
   Users, DollarSign, TrendingUp, Clock, Search,
   LogOut, Shield, Loader2, Edit, Activity,
   UserCheck, CreditCard, ArrowUpRight, ArrowDownLeft,
-  Check, X, CheckCircle2, Phone,
+  Check, X, CheckCircle2, Phone, Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -81,6 +81,9 @@ const AdminDashboard = () => {
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
   const [completingWithdrawal, setCompletingWithdrawal] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
+  const [newBalanceValue, setNewBalanceValue] = useState("");
+  const [savingBalance, setSavingBalance] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -257,6 +260,51 @@ const AdminDashboard = () => {
     return p?.phone || "No phone";
   };
 
+  const getBalanceUsdForUser = (userId: string) => {
+    const credits = deposits
+      .filter((d) => d.user_id === userId && d.status === "completed")
+      .reduce((sum, d) => sum + Number(d.amount_usd) + Number(d.profit_amount || 0), 0);
+    const debits = withdrawals
+      .filter((w) => w.user_id === userId && ["approved", "completed", "processing"].includes(w.status))
+      .reduce((sum, w) => sum + Number(w.amount_usd), 0);
+    return credits - debits;
+  };
+
+  const handleSaveBalance = async () => {
+    if (!adjustingUserId) return;
+    const target = parseFloat(newBalanceValue);
+    if (isNaN(target)) { toast.error("Enter a valid USD amount"); return; }
+    const current = getBalanceUsdForUser(adjustingUserId);
+    const delta = target - current;
+    if (Math.abs(delta) < 0.01) { toast.info("Balance unchanged"); setAdjustingUserId(null); return; }
+
+    setSavingBalance(true);
+    try {
+      const { data, error } = await supabase
+        .from("deposits")
+        .insert({
+          user_id: adjustingUserId,
+          amount_usd: 0,
+          amount_kes: 0,
+          status: "completed",
+          profit_amount: delta,
+          profit_applied: true,
+          payment_method: "admin_adjustment",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setDeposits((prev) => [data as Deposit, ...prev]);
+      toast.success(`Balance set to $${target.toFixed(2)}`);
+      setAdjustingUserId(null);
+      setNewBalanceValue("");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to adjust balance");
+    } finally {
+      setSavingBalance(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -399,10 +447,22 @@ const AdminDashboard = () => {
                                 <p className="text-[11px] font-medium text-primary">{p.phone || "No phone"}</p>
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-[10px] text-muted-foreground">
-                                {new Date(p.created_at).toLocaleDateString()}
-                              </p>
+                            <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                              <div>
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Balance</p>
+                                <p className="text-sm font-bold text-primary">${getBalanceUsdForUser(p.user_id).toFixed(2)}</p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] border-[hsl(280,70%,55%)] text-[hsl(280,70%,65%)] hover:bg-[hsl(280,70%,55%)] hover:text-primary-foreground"
+                                onClick={() => {
+                                  setAdjustingUserId(p.user_id);
+                                  setNewBalanceValue(getBalanceUsdForUser(p.user_id).toFixed(2));
+                                }}
+                              >
+                                <Wallet className="w-3 h-3 mr-1" /> Edit
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -699,6 +759,47 @@ const AdminDashboard = () => {
             </Button>
             <Button onClick={handleSaveProfit} className="bg-[hsl(280,70%,55%)] hover:bg-[hsl(280,70%,45%)]">
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust User Balance Dialog */}
+      <Dialog open={!!adjustingUserId} onOpenChange={(open) => { if (!open) { setAdjustingUserId(null); setNewBalanceValue(""); } }}>
+        <DialogContent className="bg-card border-border max-w-[calc(100%-2rem)] sm:max-w-sm rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Edit User Balance</DialogTitle>
+          </DialogHeader>
+          {adjustingUserId && (
+            <div className="space-y-3">
+              <div className="bg-secondary/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">User</p>
+                <p className="text-sm font-medium text-foreground">{getNameForUser(adjustingUserId)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Current balance: <span className="text-primary font-semibold">${getBalanceUsdForUser(adjustingUserId).toFixed(2)}</span>
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="newBalance" className="text-xs">New Balance (USD)</Label>
+                <Input
+                  id="newBalance"
+                  type="number"
+                  step="0.01"
+                  value={newBalanceValue}
+                  onChange={(e) => setNewBalanceValue(e.target.value)}
+                  className="bg-secondary border-border mt-1"
+                  placeholder="e.g. 150.00"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Recorded as an admin balance adjustment.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setAdjustingUserId(null)} className="border-border">Cancel</Button>
+            <Button onClick={handleSaveBalance} disabled={savingBalance} className="bg-[hsl(280,70%,55%)] hover:bg-[hsl(280,70%,45%)]">
+              {savingBalance ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Balance"}
             </Button>
           </DialogFooter>
         </DialogContent>
