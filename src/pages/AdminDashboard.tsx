@@ -150,42 +150,22 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleMarkCompleted = async (withdrawalId: string, amountKes: number, userId: string) => {
+  const handleMarkCompleted = async (withdrawalId: string, _amountKes: number, _userId: string) => {
     setCompletingWithdrawal(withdrawalId);
     try {
-      // Mark withdrawal as completed
       const { error: wError } = await supabase
         .from("withdrawals")
         .update({ status: "completed" })
         .eq("id", withdrawalId);
       if (wError) throw wError;
 
-      // Deduct amount from user's profit by reducing profit_amount on their completed deposits
-      // We subtract from the most recent completed deposit profit first
-      const userDeposits = deposits
-        .filter((d) => d.user_id === userId && d.status === "completed")
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      let remaining = amountKes;
-      for (const dep of userDeposits) {
-        if (remaining <= 0) break;
-        const currentProfit = Number(dep.profit_amount || 0);
-        const deduct = Math.min(currentProfit, remaining);
-        const newProfit = currentProfit - deduct;
-        await supabase
-          .from("deposits")
-          .update({ profit_amount: newProfit })
-          .eq("id", dep.id);
-        setDeposits((prev) =>
-          prev.map((d) => d.id === dep.id ? { ...d, profit_amount: newProfit } : d)
-        );
-        remaining -= deduct;
-      }
+      // Note: balance calculation already subtracts approved/completed withdrawals,
+      // so we do NOT touch deposits here (that would double-deduct).
 
       setWithdrawals((prev) =>
         prev.map((w) => w.id === withdrawalId ? { ...w, status: "completed" } : w)
       );
-      toast.success("Withdrawal marked as completed. Balance deducted.");
+      toast.success("Withdrawal marked as completed.");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to complete withdrawal");
     } finally {
