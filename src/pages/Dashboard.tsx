@@ -259,15 +259,12 @@ const Dashboard = () => {
   const completedDeposits = deposits.filter((d) => d.status === "completed");
   const totalDeposits = completedDeposits.reduce((sum, d) => sum + Number(d.amount_kes), 0);
   const totalProfit = deposits.reduce((sum, d) => sum + Number(d.profit_amount || 0), 0);
-  const totalProfitUsd = totalProfit / 150;
   const pendingTrades = deposits.filter((d) => d.status === "pending").reduce((sum, d) => sum + Number(d.amount_kes), 0);
-  const availableBalance = Math.max(
-    0,
-    totalProfit - withdrawals
-      .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
-      .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0)
-  );
-  const availableBalanceUsd = availableBalance / 150;
+  const totalCredits = totalDeposits + totalProfit;
+  const totalDebits = withdrawals
+    .filter((w: any) => ["approved", "processing", "completed"].includes(w.status))
+    .reduce((sum: number, w: any) => sum + Number(w.amount_kes), 0);
+  const availableBalance = Math.max(0, totalCredits - totalDebits);
 
   // Deposits waiting for their 30-min timer
   const pendingProfitDeposits = completedDeposits.filter((d) => {
