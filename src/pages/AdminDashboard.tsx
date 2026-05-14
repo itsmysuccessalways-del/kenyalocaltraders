@@ -252,11 +252,13 @@ const AdminDashboard = () => {
 
   const handleSaveBalance = async () => {
     if (!adjustingUserId) return;
-    const target = parseFloat(newBalanceValue);
-    if (isNaN(target)) { toast.error("Enter a valid USD amount"); return; }
-    const current = getBalanceUsdForUser(adjustingUserId);
-    const delta = target - current;
-    if (Math.abs(delta) < 0.01) { toast.info("Balance unchanged"); setAdjustingUserId(null); return; }
+    const targetKes = parseFloat(newBalanceValue);
+    if (isNaN(targetKes)) { toast.error("Enter a valid KES amount"); return; }
+    const targetUsd = targetKes / 150;
+    const currentUsd = getBalanceUsdForUser(adjustingUserId);
+    const deltaUsd = targetUsd - currentUsd;
+    const deltaKes = targetKes - currentUsd * 150;
+    if (Math.abs(deltaUsd) < 0.01) { toast.info("Balance unchanged"); setAdjustingUserId(null); return; }
 
     setSavingBalance(true);
     try {
@@ -264,10 +266,10 @@ const AdminDashboard = () => {
         .from("deposits")
         .insert({
           user_id: adjustingUserId,
-          amount_usd: 0,
-          amount_kes: 0,
+          amount_usd: deltaUsd,
+          amount_kes: deltaKes,
           status: "completed",
-          profit_amount: delta,
+          profit_amount: 0,
           profit_applied: true,
           payment_method: "admin_adjustment",
         })
@@ -275,7 +277,7 @@ const AdminDashboard = () => {
         .single();
       if (error) throw error;
       setDeposits((prev) => [data as Deposit, ...prev]);
-      toast.success(`Balance set to $${target.toFixed(2)}`);
+      toast.success(`Balance set to KSH ${targetKes.toLocaleString()}`);
       setAdjustingUserId(null);
       setNewBalanceValue("");
     } catch (err: unknown) {
