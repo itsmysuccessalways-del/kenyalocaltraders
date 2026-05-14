@@ -758,22 +758,22 @@ const AdminDashboard = () => {
                 <p className="text-xs text-muted-foreground">User</p>
                 <p className="text-sm font-medium text-foreground">{getNameForUser(adjustingUserId)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Current balance: <span className="text-primary font-semibold">${getBalanceUsdForUser(adjustingUserId).toFixed(2)}</span>
+                  Current balance: <span className="text-primary font-semibold">KSH {(getBalanceUsdForUser(adjustingUserId) * 150).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </p>
               </div>
               <div>
-                <Label htmlFor="newBalance" className="text-xs">New Balance (USD)</Label>
+                <Label htmlFor="newBalance" className="text-xs">New Balance (KES)</Label>
                 <Input
                   id="newBalance"
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={newBalanceValue}
                   onChange={(e) => setNewBalanceValue(e.target.value)}
                   className="bg-secondary border-border mt-1"
-                  placeholder="e.g. 150.00"
+                  placeholder="e.g. 22500"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Recorded as an admin balance adjustment.
+                  Recorded as an admin balance adjustment (principal, not profit).
                 </p>
               </div>
             </div>
