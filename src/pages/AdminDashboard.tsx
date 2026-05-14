@@ -150,42 +150,22 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleMarkCompleted = async (withdrawalId: string, amountKes: number, userId: string) => {
+  const handleMarkCompleted = async (withdrawalId: string, _amountKes: number, _userId: string) => {
     setCompletingWithdrawal(withdrawalId);
     try {
-      // Mark withdrawal as completed
       const { error: wError } = await supabase
         .from("withdrawals")
         .update({ status: "completed" })
         .eq("id", withdrawalId);
       if (wError) throw wError;
 
-      // Deduct amount from user's profit by reducing profit_amount on their completed deposits
-      // We subtract from the most recent completed deposit profit first
-      const userDeposits = deposits
-        .filter((d) => d.user_id === userId && d.status === "completed")
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      let remaining = amountKes;
-      for (const dep of userDeposits) {
-        if (remaining <= 0) break;
-        const currentProfit = Number(dep.profit_amount || 0);
-        const deduct = Math.min(currentProfit, remaining);
-        const newProfit = currentProfit - deduct;
-        await supabase
-          .from("deposits")
-          .update({ profit_amount: newProfit })
-          .eq("id", dep.id);
-        setDeposits((prev) =>
-          prev.map((d) => d.id === dep.id ? { ...d, profit_amount: newProfit } : d)
-        );
-        remaining -= deduct;
-      }
+      // Note: balance calculation already subtracts approved/completed withdrawals,
+      // so we do NOT touch deposits here (that would double-deduct).
 
       setWithdrawals((prev) =>
         prev.map((w) => w.id === withdrawalId ? { ...w, status: "completed" } : w)
       );
-      toast.success("Withdrawal marked as completed. Balance deducted.");
+      toast.success("Withdrawal marked as completed.");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to complete withdrawal");
     } finally {
@@ -272,11 +252,13 @@ const AdminDashboard = () => {
 
   const handleSaveBalance = async () => {
     if (!adjustingUserId) return;
-    const target = parseFloat(newBalanceValue);
-    if (isNaN(target)) { toast.error("Enter a valid USD amount"); return; }
-    const current = getBalanceUsdForUser(adjustingUserId);
-    const delta = target - current;
-    if (Math.abs(delta) < 0.01) { toast.info("Balance unchanged"); setAdjustingUserId(null); return; }
+    const targetKes = parseFloat(newBalanceValue);
+    if (isNaN(targetKes)) { toast.error("Enter a valid KES amount"); return; }
+    const targetUsd = targetKes / 150;
+    const currentUsd = getBalanceUsdForUser(adjustingUserId);
+    const deltaUsd = targetUsd - currentUsd;
+    const deltaKes = targetKes - currentUsd * 150;
+    if (Math.abs(deltaUsd) < 0.01) { toast.info("Balance unchanged"); setAdjustingUserId(null); return; }
 
     setSavingBalance(true);
     try {
@@ -284,10 +266,10 @@ const AdminDashboard = () => {
         .from("deposits")
         .insert({
           user_id: adjustingUserId,
-          amount_usd: 0,
-          amount_kes: 0,
+          amount_usd: deltaUsd,
+          amount_kes: deltaKes,
           status: "completed",
-          profit_amount: delta,
+          profit_amount: 0,
           profit_applied: true,
           payment_method: "admin_adjustment",
         })
@@ -295,7 +277,7 @@ const AdminDashboard = () => {
         .single();
       if (error) throw error;
       setDeposits((prev) => [data as Deposit, ...prev]);
-      toast.success(`Balance set to $${target.toFixed(2)}`);
+      toast.success(`Balance set to KSH ${targetKes.toLocaleString()}`);
       setAdjustingUserId(null);
       setNewBalanceValue("");
     } catch (err: unknown) {
@@ -450,7 +432,7 @@ const AdminDashboard = () => {
                             <div className="text-right shrink-0 flex flex-col items-end gap-1">
                               <div>
                                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Balance</p>
-                                <p className="text-sm font-bold text-primary">${getBalanceUsdForUser(p.user_id).toFixed(2)}</p>
+                                <p className="text-sm font-bold text-primary">KSH {(getBalanceUsdForUser(p.user_id) * 150).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                               </div>
                               <Button
                                 variant="outline"
@@ -458,7 +440,7 @@ const AdminDashboard = () => {
                                 className="h-6 px-2 text-[10px] border-[hsl(280,70%,55%)] text-[hsl(280,70%,65%)] hover:bg-[hsl(280,70%,55%)] hover:text-primary-foreground"
                                 onClick={() => {
                                   setAdjustingUserId(p.user_id);
-                                  setNewBalanceValue(getBalanceUsdForUser(p.user_id).toFixed(2));
+                                  setNewBalanceValue((getBalanceUsdForUser(p.user_id) * 150).toFixed(0));
                                 }}
                               >
                                 <Wallet className="w-3 h-3 mr-1" /> Edit
@@ -776,22 +758,22 @@ const AdminDashboard = () => {
                 <p className="text-xs text-muted-foreground">User</p>
                 <p className="text-sm font-medium text-foreground">{getNameForUser(adjustingUserId)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Current balance: <span className="text-primary font-semibold">${getBalanceUsdForUser(adjustingUserId).toFixed(2)}</span>
+                  Current balance: <span className="text-primary font-semibold">KSH {(getBalanceUsdForUser(adjustingUserId) * 150).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </p>
               </div>
               <div>
-                <Label htmlFor="newBalance" className="text-xs">New Balance (USD)</Label>
+                <Label htmlFor="newBalance" className="text-xs">New Balance (KES)</Label>
                 <Input
                   id="newBalance"
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={newBalanceValue}
                   onChange={(e) => setNewBalanceValue(e.target.value)}
                   className="bg-secondary border-border mt-1"
-                  placeholder="e.g. 150.00"
+                  placeholder="e.g. 22500"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Recorded as an admin balance adjustment.
+                  Recorded as an admin balance adjustment (principal, not profit).
                 </p>
               </div>
             </div>
